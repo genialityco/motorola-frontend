@@ -5,9 +5,9 @@ import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
-  projectId: "lenovo-experiences", // Usado para emuladores locales sin necesidad de service account
-  apiKey: "AIzaSyB0iYSMU7tuWyMw-q5h4VKSgCq5LTZJoM4",
-  appId: "1:472633703949:web:c424fcf34b2f983c779f44",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
