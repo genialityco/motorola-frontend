@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { ChatSession, SessionMessage } from '@/types';
+import { ChatSession, Host, SessionMessage } from '@/types';
 import { whatsappService } from '@/services/whatsapp.service';
 
 export function useWhatsappSessions() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
+  const [hostNames, setHostNames] = useState<Record<string, string>>({});
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [selectedSession, setSelectedSession] = useState<ChatSession | null>(null);
   const [input, setInput] = useState('');
@@ -14,6 +15,22 @@ export function useWhatsappSessions() {
   const [botEnabled, setBotEnabled] = useState(true);
   const [togglingBot, setTogglingBot] = useState(false);
   const viewport = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, 'hosts'),
+      (snapshot) => {
+        const map: Record<string, string> = {};
+        snapshot.docs.forEach((d) => {
+          const h = d.data() as Host;
+          if (h.telefono && h.nombre) map[h.telefono] = h.nombre;
+        });
+        setHostNames(map);
+      },
+      (err) => console.warn('Error leyendo hosts:', err),
+    );
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -97,6 +114,7 @@ export function useWhatsappSessions() {
 
   return {
     sessions,
+    hostNames,
     selectedPhone, setSelectedPhone,
     selectedSession,
     input, setInput,

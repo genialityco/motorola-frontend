@@ -21,6 +21,7 @@ const FROM_LABELS: Record<string, string> = {
 export default function ChatsPage() {
   const {
     sessions,
+    hostNames,
     selectedPhone, setSelectedPhone,
     selectedSession,
     input, setInput,
@@ -59,15 +60,14 @@ export default function ChatsPage() {
               onClick={() => setSelectedPhone(s.phone)}
               style={{
                 cursor: "pointer",
-                background: selectedPhone === s.phone ? "#e7f5ff" : "transparent",
-                borderBottom: "1px solid #f1f3f5",
+                background: selectedPhone === s.phone ? "#455545" : "transparent",
+                borderBottom: "1px solid #6f9b75",
               }}
             >
-              <Text fw={600} size="sm">{s.phone}</Text>
+              <Text fw={600} size="sm">{hostNames[s.phone] ?? s.phone}</Text>
               <Text size="xs" c="dimmed" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {s.lastMessage || "Sin mensajes"}
               </Text>
-              <Text size="xs" c="blue">Estado: {s.state}</Text>
             </Box>
           ))}
         </Box>
@@ -83,8 +83,7 @@ export default function ChatsPage() {
               <Box p="sm" style={{ borderBottom: "1px solid #dee2e6", background: "#6e8f6d", flexShrink: 0 }}>
                 <Group justify="space-between" mb="xs">
                   <Box>
-                    <Text fw={700} c="dark">{selectedPhone}</Text>
-                    <Text size="xs" c="dark">Estado bot: {selectedSession.state}</Text>
+                    <Text fw={700} c="dark">{hostNames[selectedPhone!] ?? selectedPhone}</Text>
                   </Box>
                   <Switch
                     label={botEnabled ? "Bot activo" : "Bot inactivo"}
