@@ -176,11 +176,11 @@ export default function TicketDetailPage() {
       <Stack gap="xs" mb="xl" bg="gray.0" p="md" style={{ borderRadius: "8px" }}>
         <Group>
           <Text fw={700} size="sm" c="dimmed">Reportado Por:</Text>
-          <Text>{ticket.reporter?.name || "—"} ({ticket.reporter?.phone || "—"})</Text>
+          <Text c="dark">{ticket.reporter?.name || "—"} ({ticket.reporter?.phone || "—"})</Text>
         </Group>
         <Group>
           <Text fw={700} size="sm" c="dimmed">Fecha de creación:</Text>
-          <Text>
+          <Text c="dark">
             {ticket.timestamps?.createdAt
               ? new Date(ticket.timestamps.createdAt).toLocaleString("es-CO")
               : "—"}
