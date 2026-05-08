@@ -164,8 +164,11 @@ export default function DashboardPage() {
       else if (sortCol === 'createdAt') { aVal = a.timestamps?.createdAt ?? 0; bVal = b.timestamps?.createdAt ?? 0; }
       else if (sortCol === 'estado') { aVal = a.status ?? ''; bVal = b.status ?? ''; }
       else { aVal = getFieldValue(a, sortCol); bVal = getFieldValue(b, sortCol); }
-      if (aVal < bVal) return sortDir === 'asc' ? -1 : 1;
-      if (aVal > bVal) return sortDir === 'asc' ? 1 : -1;
+      
+      const aStr = String(aVal);
+      const bStr = String(bVal);
+      if (aStr < bStr) return sortDir === 'asc' ? -1 : 1;
+      if (aStr > bStr) return sortDir === 'asc' ? 1 : -1;
       return 0;
     });
   }, [filtered, sortCol, sortDir]);
@@ -191,15 +194,9 @@ export default function DashboardPage() {
         'Teléfono Reportante': t.reporter?.phone || '',
         'Descripción': t.novelty?.description || '',
         'Tipo Novedad': t.novelty?.type || '',
-        'Taller ID': t.actors?.workshopId || '',
-        'Transportador ID': t.actors?.transporterId || '',
-        'Presupuesto Estimado': t.budget?.estimatedValue ?? '',
-        'Presupuesto Aprobado': t.budget?.approved != null ? (t.budget.approved ? 'Sí' : 'No') : '',
         'Fotos Evidencia': (t.photos?.evidence || []).join(' | '),
         'Fotos Reparación': (t.photos?.repair || []).join(' | '),
-        'Fotos Entrega': (t.photos?.delivery || []).join(' | '),
         'Fecha Creación': t.timestamps?.createdAt ? new Date(t.timestamps.createdAt).toLocaleString('es-CO') : '',
-        'Última Actualización': t.timestamps?.updatedAt ? new Date(t.timestamps.updatedAt).toLocaleString('es-CO') : '',
       });
       return row;
     });
