@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { collection, doc, getDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Ticket, TicketStatus, StatusHistoryEntry } from '@/types';
 import { ticketsService } from '@/services/tickets.service';
@@ -9,6 +9,7 @@ import { useAppToast } from '@/components/toast-provider';
 export function useTicketDetail(ticketId: string) {
   const { showToast } = useAppToast();
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [hostName, setHostName] = useState<string | null>(null);
   const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
   const [loadingStatus, setLoadingStatus] = useState<TicketStatus | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
@@ -26,6 +27,16 @@ export function useTicketDetail(ticketId: string) {
   const [requestModal, setRequestModal] = useState<{ fieldKey: string; fieldLabel: string } | null>(null);
   const [requestMessage, setRequestMessage] = useState('');
   const [requestingField, setRequestingField] = useState(false);
+
+  useEffect(() => {
+    if (!ticket?.reporter?.phone) return;
+    getDoc(doc(db, 'hosts', ticket.reporter.phone)).then((snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as { nombre?: string };
+        setHostName(data.nombre || null);
+      }
+    });
+  }, [ticket?.reporter?.phone]);
 
   useEffect(() => {
     if (!ticketId) return;
@@ -183,6 +194,7 @@ export function useTicketDetail(ticketId: string) {
 
   return {
     ticket,
+    hostName,
     history,
     timeline,
     loadingStatus,

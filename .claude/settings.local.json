@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"c:\\\\Users\\\\sebas\\\\Documents\\\\GitHub\\\\motorola-backend\\\\\")",
+      "Read(//c/Users/sebas/Documents/GitHub/**)"
+    ]
+  }
+}
