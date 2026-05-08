@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { collection, doc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Ticket, TicketStatus, StatusHistoryEntry } from '@/types';
@@ -11,15 +11,15 @@ export function useTicketDetail(ticketId: string) {
   const [loadingStatus, setLoadingStatus] = useState<TicketStatus | null>(null);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [historyExpanded, setHistoryExpanded] = useState(false);
-  const [deletingPhotoIdx, setDeletingPhotoIdx] = useState<number | null>(null);
-  const [deletingRepairIdx, setDeletingRepairIdx] = useState<number | null>(null);
-  const [repairFiles, setRepairFiles] = useState<File[]>([]);
-  const [uploadingRepair, setUploadingRepair] = useState(false);
-  const repairFileInputRef = useRef<(() => void) | null>(null);
-  const [evidenceExpanded, setEvidenceExpanded] = useState(false);
-  const [repairExpanded, setRepairExpanded] = useState(false);
-  const [observations, setObservations] = useState('');
-  const [savingObservations, setSavingObservations] = useState(false);
+
+  // Per-field accordion expansion state
+  const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({});
+
+  // Photo operations
+  const [deletingPhoto, setDeletingPhoto] = useState<{ fieldKey: string; idx: number } | null>(null);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
+
+  // Request field improvement modal
   const [requestModal, setRequestModal] = useState<{ fieldKey: string; fieldLabel: string } | null>(null);
   const [requestMessage, setRequestMessage] = useState('');
   const [requestingField, setRequestingField] = useState(false);
@@ -30,9 +30,7 @@ export function useTicketDetail(ticketId: string) {
       doc(db, 'tickets', ticketId),
       (snap) => {
         if (snap.exists()) {
-          const data = snap.data()!;
-          setTicket({ id: snap.id, ...data } as Ticket);
-          setObservations((data.observations as string) || '');
+          setTicket({ id: snap.id, ...snap.data() } as Ticket);
         }
       },
       (error) => {
@@ -69,8 +67,20 @@ export function useTicketDetail(ticketId: string) {
       comments: 'Ticket creado',
       changedBy: undefined as StatusHistoryEntry['changedBy'],
     };
-    return [initial, ...history.map((e) => ({ status: e.newStatus, timestamp: e.timestamp, comments: e.comments, changedBy: e.changedBy }))];
+    return [
+      initial,
+      ...history.map((e) => ({
+        status: e.newStatus,
+        timestamp: e.timestamp,
+        comments: e.comments,
+        changedBy: e.changedBy,
+      })),
+    ];
   }, [ticket, history]);
+
+  const toggleField = (fieldKey: string) => {
+    setExpandedFields((prev) => ({ ...prev, [fieldKey]: !prev[fieldKey] }));
+  };
 
   const changeStatus = async (newStatus: TicketStatus) => {
     setLoadingStatus(newStatus);
@@ -85,59 +95,32 @@ export function useTicketDetail(ticketId: string) {
     }
   };
 
-  const deleteEvidencePhoto = async (idx: number) => {
-    setDeletingPhotoIdx(idx);
+  const deletePhoto = async (fieldKey: string, idx: number) => {
+    setDeletingPhoto({ fieldKey, idx });
     setErrorStatus(null);
     try {
-      await ticketsService.deleteEvidencePhoto(ticketId, idx);
+      await ticketsService.deletePhoto(ticketId, fieldKey, idx);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al eliminar la foto.';
       setErrorStatus(msg);
     } finally {
-      setDeletingPhotoIdx(null);
+      setDeletingPhoto(null);
     }
   };
 
-  const deleteRepairPhoto = async (idx: number) => {
-    setDeletingRepairIdx(idx);
+  const uploadPhotos = async (fieldKey: string, files: File[]) => {
+    if (!files.length) return;
+    setUploadingField(fieldKey);
     setErrorStatus(null);
     try {
-      await ticketsService.deleteRepairPhoto(ticketId, idx);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Error al eliminar la foto de reparación.';
-      setErrorStatus(msg);
-    } finally {
-      setDeletingRepairIdx(null);
-    }
-  };
-
-  const uploadRepairPhotos = async () => {
-    if (!repairFiles.length) return;
-    setUploadingRepair(true);
-    setErrorStatus(null);
-    try {
-      for (const file of repairFiles) {
-        await ticketsService.uploadRepairPhoto(ticketId, file);
+      for (const file of files) {
+        await ticketsService.uploadPhoto(ticketId, fieldKey, file);
       }
-      setRepairFiles([]);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Error al subir las fotos.';
       setErrorStatus(msg);
     } finally {
-      setUploadingRepair(false);
-    }
-  };
-
-  const saveObservations = async () => {
-    setSavingObservations(true);
-    setErrorStatus(null);
-    try {
-      await ticketsService.updateObservation(ticketId, observations);
-    } catch (error: unknown) {
-      const msg = error instanceof Error ? error.message : 'Error al guardar las observaciones.';
-      setErrorStatus(msg);
-    } finally {
-      setSavingObservations(false);
+      setUploadingField(null);
     }
   };
 
@@ -166,26 +149,19 @@ export function useTicketDetail(ticketId: string) {
     ticket,
     history,
     timeline,
-    observations, setObservations,
     loadingStatus,
     errorStatus, setErrorStatus,
     historyExpanded, setHistoryExpanded,
-    evidenceExpanded, setEvidenceExpanded,
-    repairExpanded, setRepairExpanded,
-    deletingPhotoIdx,
-    deletingRepairIdx,
-    repairFiles, setRepairFiles,
-    uploadingRepair,
-    repairFileInputRef,
-    savingObservations,
+    expandedFields,
+    toggleField,
+    deletingPhoto,
+    uploadingField,
     requestModal, setRequestModal,
     requestMessage, setRequestMessage,
     requestingField,
     changeStatus,
-    deleteEvidencePhoto,
-    deleteRepairPhoto,
-    uploadRepairPhotos,
-    saveObservations,
+    deletePhoto,
+    uploadPhotos,
     requestFieldImprovement,
   };
 }

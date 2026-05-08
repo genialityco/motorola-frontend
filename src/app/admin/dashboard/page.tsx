@@ -1,15 +1,15 @@
 "use client";
 
 import { useMemo, useState } from 'react';
-import { Ticket, BotField, FieldSource } from '@/types';
+import { Ticket, BotField, FieldType, FieldSource, SystemFieldConfig } from '@/types';
 import {
   Table, Badge, Group, Title, Paper, Button,
   Popover, Checkbox, Text, Stack, Select,
   Modal, TextInput, ActionIcon, Tooltip, Pagination, Tabs,
-  Textarea, Switch,
+  Textarea, Switch, Divider,
 } from '@mantine/core';
 import {
-  IconArrowUp, IconArrowDown, IconArrowsSort, IconFilter, IconEdit,
+  IconArrowUp, IconArrowDown, IconArrowsSort, IconFilter, IconEdit, IconTrash,
 } from '@tabler/icons-react';
 import Link from 'next/link';
 import * as XLSX from 'xlsx';
@@ -18,12 +18,27 @@ import { useBotConfig } from '@/hooks/useBotConfig';
 import { useHosts } from '@/hooks/useHosts';
 
 // ── Display constants ──────────────────────────────────────────────────────────
-type FieldType = 'string' | 'numeric' | 'date' | 'photo' | 'video';
 type SortCol = string;
 type SortDir = 'asc' | 'desc';
 
-const TYPE_LABELS: Record<FieldType, string> = { string: 'Texto', numeric: 'Numérico', date: 'Fecha', photo: 'Foto(s)', video: 'Video(s)' };
-const TYPE_COLORS: Record<FieldType, string> = { string: 'blue', numeric: 'orange', date: 'violet', photo: 'pink', video: 'grape' };
+const TYPE_LABELS: Record<FieldType, string> = {
+  string: 'Texto',
+  numeric: 'Número',
+  date: 'Fecha',
+  photo: 'Foto(s)/Video(s)',
+  video: 'Video(s)',
+  boolean: 'Booleano',
+  list: 'Lista',
+};
+const TYPE_COLORS: Record<FieldType, string> = {
+  string: 'blue',
+  numeric: 'orange',
+  date: 'violet',
+  photo: 'pink',
+  video: 'grape',
+  boolean: 'cyan',
+  list: 'lime',
+};
 const SOURCE_LABELS: Record<string, string> = { bot: 'Chat (Bot)', admin: 'Panel Admin', auto: 'Automático' };
 const SOURCE_COLORS: Record<string, string> = { bot: 'teal', admin: 'indigo', auto: 'gray' };
 const MESSAGE_META = [
@@ -46,17 +61,12 @@ const ACTIVE_TICKET_STATUSES = new Set(['REPORTADO', 'REVISION', 'EN_REPARACION'
 
 // ── Utility ────────────────────────────────────────────────────────────────────
 function getFieldValue(ticket: Ticket, key: string): string {
-  if (key === 'ciudad') return ticket.ciudad || '';
-  if (key === 'canal') return ticket.canal || '';
-  if (key === 'punto') return ticket.point?.name || '';
-  if (ticket.extraFields?.[key]) return ticket.extraFields[key];
-  const parts = key.split('.');
-  let val: unknown = ticket;
-  for (const part of parts) {
-    if (val && typeof val === 'object') val = (val as Record<string, unknown>)[part];
-    else return '';
-  }
-  return typeof val === 'string' ? val : '';
+  const val = ticket.extraFields?.[key];
+  if (val === undefined || val === null) return '';
+  if (Array.isArray(val)) return val.length > 0 ? `${val.length} archivo(s)` : '';
+  if (val === 'true') return 'Sí';
+  if (val === 'false') return 'No';
+  return val;
 }
 
 export default function DashboardPage() {
@@ -65,6 +75,7 @@ export default function DashboardPage() {
   const {
     configMessages, setConfigMessages,
     configFields, setConfigFields,
+    systemFields, setSystemFields,
     savingMessages, savingFields,
     infoTab, setInfoTab,
     addFieldOpen, setAddFieldOpen,
@@ -74,6 +85,8 @@ export default function DashboardPage() {
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
+    newFieldOptions,
+    newFieldOptionInput, setNewFieldOptionInput,
     editFieldOpen,
     editingFieldIdx,
     editFieldLabel, setEditFieldLabel,
@@ -81,7 +94,7 @@ export default function DashboardPage() {
     saveMessages, saveFields,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
-    addField,
+    addField, addListOption, removeListOption,
   } = useBotConfig();
   const {
     hosts,
@@ -115,6 +128,13 @@ export default function DashboardPage() {
     hosts.forEach((h) => m.set(h.telefono, h.nombre));
     return m;
   }, [hosts]);
+
+  // Map system fields for easy visibility lookup
+  const sysFieldMap = useMemo(() => {
+    const m: Record<string, SystemFieldConfig> = {};
+    systemFields.forEach((f) => { m[f.key] = f; });
+    return m;
+  }, [systemFields]);
 
   const visibleFields = useMemo(
     () => configFields.filter((f) => f.visible !== false),
@@ -164,7 +184,7 @@ export default function DashboardPage() {
       else if (sortCol === 'createdAt') { aVal = a.timestamps?.createdAt ?? 0; bVal = b.timestamps?.createdAt ?? 0; }
       else if (sortCol === 'estado') { aVal = a.status ?? ''; bVal = b.status ?? ''; }
       else { aVal = getFieldValue(a, sortCol); bVal = getFieldValue(b, sortCol); }
-      
+
       const aStr = String(aVal);
       const bStr = String(bVal);
       if (aStr < bStr) return sortDir === 'asc' ? -1 : 1;
@@ -205,6 +225,10 @@ export default function DashboardPage() {
   const dateFilterActive = !!filterFechaFrom || !!filterFechaTo;
   const startIdx = sorted.length === 0 ? 0 : (page - 1) * pageSizeNum + 1;
   const endIdx = Math.min(page * pageSizeNum, sorted.length);
+
+  // Count visible columns for colSpan
+  const visibleSysCols = systemFields.filter((f) => f.visible).length;
+  const totalCols = visibleSysCols + visibleFields.length + 1; // +1 for Acciones
 
   function SortIcon({ col }: { col: SortCol }) {
     if (sortCol !== col) return <IconArrowsSort size={13} opacity={0.35} />;
@@ -255,53 +279,59 @@ export default function DashboardPage() {
           <Table striped highlightOnHover style={{ tableLayout: 'auto' }}>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>
-                  <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('ticketNumber')}>
-                    <Text size="sm" fw={600}>Ticket #</Text>
-                    <SortIcon col="ticketNumber" />
-                  </Group>
-                </Table.Th>
-                <Table.Th>
-                  <Group gap={4} wrap="nowrap">
-                    <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('createdAt')}>
-                      <Text size="sm" fw={600}>Creación</Text>
-                      <SortIcon col="createdAt" />
+                {sysFieldMap.ticketNumber?.visible !== false && (
+                  <Table.Th>
+                    <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('ticketNumber')}>
+                      <Text size="sm" fw={600}>Ticket #</Text>
+                      <SortIcon col="ticketNumber" />
                     </Group>
-                    <Tooltip label={dateFilterActive ? 'Filtro activo' : 'Filtrar por fecha'} withArrow>
-                      <ActionIcon size="xs" variant="subtle" color={dateFilterActive ? 'blue' : 'gray'} onClick={() => setDateModalOpen(true)}>
-                        <IconFilter size={13} />
-                      </ActionIcon>
-                    </Tooltip>
-                  </Group>
-                </Table.Th>
-                <Table.Th>
-                  <Group gap={4} wrap="nowrap">
-                    <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('estado')}>
-                      <Text size="sm" fw={600}>Estado</Text>
-                      <SortIcon col="estado" />
-                    </Group>
-                    <Popover withArrow shadow="md" position="bottom-start" withinPortal>
-                      <Popover.Target>
-                        <ActionIcon size="xs" variant="subtle" color={filterEstados.length > 0 ? 'blue' : 'gray'}>
+                  </Table.Th>
+                )}
+                {sysFieldMap.createdAt?.visible !== false && (
+                  <Table.Th>
+                    <Group gap={4} wrap="nowrap">
+                      <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('createdAt')}>
+                        <Text size="sm" fw={600}>Creación</Text>
+                        <SortIcon col="createdAt" />
+                      </Group>
+                      <Tooltip label={dateFilterActive ? 'Filtro activo' : 'Filtrar por fecha'} withArrow>
+                        <ActionIcon size="xs" variant="subtle" color={dateFilterActive ? 'blue' : 'gray'} onClick={() => setDateModalOpen(true)}>
                           <IconFilter size={13} />
                         </ActionIcon>
-                      </Popover.Target>
-                      <Popover.Dropdown>
-                        <Text size="xs" fw={700} mb="xs">Estado</Text>
-                        <Checkbox.Group value={filterEstados} onChange={withPageReset(setFilterEstados)}>
-                          <Stack gap={6}>
-                            {ALL_STATUSES.map((s) => <Checkbox key={s} value={s} label={s} size="xs" />)}
-                          </Stack>
-                        </Checkbox.Group>
-                        {filterEstados.length > 0 && (
-                          <Button size="xs" variant="subtle" color="red" mt="xs" onClick={() => { setFilterEstados([]); setPage(1); }}>
-                            Limpiar
-                          </Button>
-                        )}
-                      </Popover.Dropdown>
-                    </Popover>
-                  </Group>
-                </Table.Th>
+                      </Tooltip>
+                    </Group>
+                  </Table.Th>
+                )}
+                {sysFieldMap.estado?.visible !== false && (
+                  <Table.Th>
+                    <Group gap={4} wrap="nowrap">
+                      <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('estado')}>
+                        <Text size="sm" fw={600}>Estado</Text>
+                        <SortIcon col="estado" />
+                      </Group>
+                      <Popover withArrow shadow="md" position="bottom-start" withinPortal>
+                        <Popover.Target>
+                          <ActionIcon size="xs" variant="subtle" color={filterEstados.length > 0 ? 'blue' : 'gray'}>
+                            <IconFilter size={13} />
+                          </ActionIcon>
+                        </Popover.Target>
+                        <Popover.Dropdown>
+                          <Text size="xs" fw={700} mb="xs">Estado</Text>
+                          <Checkbox.Group value={filterEstados} onChange={withPageReset(setFilterEstados)}>
+                            <Stack gap={6}>
+                              {ALL_STATUSES.map((s) => <Checkbox key={s} value={s} label={s} size="xs" />)}
+                            </Stack>
+                          </Checkbox.Group>
+                          {filterEstados.length > 0 && (
+                            <Button size="xs" variant="subtle" color="red" mt="xs" onClick={() => { setFilterEstados([]); setPage(1); }}>
+                              Limpiar
+                            </Button>
+                          )}
+                        </Popover.Dropdown>
+                      </Popover>
+                    </Group>
+                  </Table.Th>
+                )}
                 {visibleFields.map((field) => (
                   <Table.Th key={field.key}>
                     <Group gap={4} wrap="nowrap">
@@ -335,28 +365,38 @@ export default function DashboardPage() {
                     </Group>
                   </Table.Th>
                 ))}
-                <Table.Th><Text size="sm" fw={600}>Reportado Por</Text></Table.Th>
+                {sysFieldMap.reporter?.visible !== false && (
+                  <Table.Th><Text size="sm" fw={600}>Reportado Por</Text></Table.Th>
+                )}
                 <Table.Th><Text size="sm" fw={600}>Acciones</Text></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {paginated.map((ticket) => (
                 <Table.Tr key={ticket.id}>
-                  <Table.Td fw={500}>{ticket.ticketNumber}</Table.Td>
-                  <Table.Td>
-                    {ticket.timestamps?.createdAt
-                      ? new Date(ticket.timestamps.createdAt).toLocaleDateString('es-CO')
-                      : 'Fecha N/A'}
-                  </Table.Td>
-                  <Table.Td>
-                    <Badge size="sm" color={STATUS_COLORS[ticket.status] || 'gray'}>{ticket.status}</Badge>
-                  </Table.Td>
+                  {sysFieldMap.ticketNumber?.visible !== false && (
+                    <Table.Td fw={500}>{ticket.ticketNumber}</Table.Td>
+                  )}
+                  {sysFieldMap.createdAt?.visible !== false && (
+                    <Table.Td>
+                      {ticket.timestamps?.createdAt
+                        ? new Date(ticket.timestamps.createdAt).toLocaleDateString('es-CO')
+                        : 'Fecha N/A'}
+                    </Table.Td>
+                  )}
+                  {sysFieldMap.estado?.visible !== false && (
+                    <Table.Td>
+                      <Badge size="sm" color={STATUS_COLORS[ticket.status] || 'gray'}>{ticket.status}</Badge>
+                    </Table.Td>
+                  )}
                   {visibleFields.map((field) => (
                     <Table.Td key={field.key}>{getFieldValue(ticket, field.key) || '—'}</Table.Td>
                   ))}
-                  <Table.Td>
-                    {hostsMap.get(ticket.reporter?.phone) || ticket.reporter?.name || ticket.reporter?.phone}
-                  </Table.Td>
+                  {sysFieldMap.reporter?.visible !== false && (
+                    <Table.Td>
+                      {hostsMap.get(ticket.reporter?.phone) || ticket.reporter?.name || ticket.reporter?.phone}
+                    </Table.Td>
+                  )}
                   <Table.Td>
                     <Button component={Link} href={`/admin/dashboard/tickets/${ticket.id}`} size="xs" variant="light">
                       Ver Detalle
@@ -366,7 +406,7 @@ export default function DashboardPage() {
               ))}
               {paginated.length === 0 && (
                 <Table.Tr>
-                  <Table.Td colSpan={5 + visibleFields.length} ta="center" c="dimmed">
+                  <Table.Td colSpan={totalCols} ta="center" c="dimmed">
                     No hay tickets para estos filtros.
                   </Table.Td>
                 </Table.Tr>
@@ -488,27 +528,80 @@ export default function DashboardPage() {
             </Tabs.Panel>
 
             <Tabs.Panel value="fields">
+              {/* ── Campos del sistema ─────────────────────────────────── */}
+              <Title order={4} mb={4}>Campos del sistema</Title>
+              <Text size="xs" c="dimmed" mb="sm">
+                Columnas fijas del sistema. Solo se pueden mostrar u ocultar en la tabla de tickets.
+              </Text>
+              <Table withTableBorder withColumnBorders mb="xl" style={{ tableLayout: 'fixed' }}>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Campo</Table.Th>
+                    <Table.Th style={{ width: 110, textAlign: 'center' }}>Visible en tabla</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {systemFields.map((sf) => (
+                    <Table.Tr key={sf.key}>
+                      <Table.Td>
+                        <Text size="sm" fw={500}>{sf.label}</Text>
+                      </Table.Td>
+                      <Table.Td style={{ textAlign: 'center' }}>
+                        <Switch
+                          size="xs"
+                          checked={sf.visible}
+                          onChange={(e) =>
+                            setSystemFields((prev) =>
+                              prev.map((f) => f.key === sf.key ? { ...f, visible: e.currentTarget.checked } : f)
+                            )
+                          }
+                        />
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+
+              <Divider mb="md" />
+
+              {/* ── Campos ticket ──────────────────────────────────────── */}
               <Group justify="space-between" mb="xs">
-                <Text size="sm" fw={600}>Campos configurables</Text>
+                <div>
+                  <Title order={4} mb={2}>Campos ticket</Title>
+                  <Text size="xs" c="dimmed">Campos personalizados creados por el administrador.</Text>
+                </div>
                 <Button size="xs" variant="light" onClick={() => setAddFieldOpen(true)}>+ Agregar campo</Button>
               </Group>
               <Table withTableBorder withColumnBorders mb="lg" style={{ tableLayout: 'fixed' }}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Etiqueta</Table.Th>
-                    <Table.Th style={{ width: 140 }}>Origen</Table.Th>
+                    <Table.Th style={{ width: 110 }}>Tipo</Table.Th>
+                    <Table.Th style={{ width: 130 }}>Origen</Table.Th>
                     <Table.Th style={{ width: 85 }}>Requerido</Table.Th>
                     <Table.Th style={{ width: 90 }}>Normalizar</Table.Th>
-                    <Table.Th style={{ width: 100 }}>Visible</Table.Th>
-                    <Table.Th style={{ width: 100 }}>Excel</Table.Th>
+                    <Table.Th style={{ width: 90 }}>Visible</Table.Th>
+                    <Table.Th style={{ width: 70 }}>Excel</Table.Th>
                     <Table.Th style={{ width: 70 }}>Orden</Table.Th>
-                    <Table.Th style={{ width: 40 }}></Table.Th>
+                    <Table.Th style={{ width: 60 }}></Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
                   {configFields.map((field, idx) => (
                     <Table.Tr key={field.key}>
-                      <Table.Td><Text size="sm" fw={500}>{field.label}</Text></Table.Td>
+                      <Table.Td>
+                        <Stack gap={2}>
+                          <Text size="sm" fw={500}>{field.label}</Text>
+                          {field.type === 'list' && field.options && field.options.length > 0 && (
+                            <Text size="xs" c="dimmed">{field.options.join(', ')}</Text>
+                          )}
+                        </Stack>
+                      </Table.Td>
+                      <Table.Td>
+                        <Badge size="xs" color={TYPE_COLORS[field.type as FieldType] || 'gray'}>
+                          {TYPE_LABELS[field.type as FieldType] || field.type}
+                        </Badge>
+                      </Table.Td>
                       <Table.Td>
                         <Select
                           value={field.source ?? 'bot'}
@@ -531,11 +624,16 @@ export default function DashboardPage() {
                         }} />
                       </Table.Td>
                       <Table.Td style={{ textAlign: 'center' }}>
-                        <Switch size="xs" checked={field.normalize} disabled={(field.type ?? 'string') !== 'string'} onChange={(e) => {
-                          const updated = [...configFields];
-                          updated[idx] = { ...field, normalize: e.currentTarget.checked };
-                          setConfigFields(updated);
-                        }} />
+                        <Switch
+                          size="xs"
+                          checked={field.normalize}
+                          disabled={field.type !== 'string'}
+                          onChange={(e) => {
+                            const updated = [...configFields];
+                            updated[idx] = { ...field, normalize: e.currentTarget.checked };
+                            setConfigFields(updated);
+                          }}
+                        />
                       </Table.Td>
                       <Table.Td style={{ textAlign: 'center' }}>
                         <Switch size="xs" checked={field.visible ?? true} onChange={(e) => {
@@ -545,11 +643,16 @@ export default function DashboardPage() {
                         }} />
                       </Table.Td>
                       <Table.Td style={{ textAlign: 'center' }}>
-                        <Switch size="xs" checked={field.excel ?? false} onChange={(e) => {
-                          const updated = [...configFields];
-                          updated[idx] = { ...field, excel: e.currentTarget.checked };
-                          setConfigFields(updated);
-                        }} />
+                        <Switch
+                          size="xs"
+                          checked={field.excel ?? false}
+                          disabled={field.type === 'photo' || field.type === 'video'}
+                          onChange={(e) => {
+                            const updated = [...configFields];
+                            updated[idx] = { ...field, excel: e.currentTarget.checked };
+                            setConfigFields(updated);
+                          }}
+                        />
                       </Table.Td>
                       <Table.Td>
                         <Group gap={2} wrap="nowrap">
@@ -577,7 +680,7 @@ export default function DashboardPage() {
                   ))}
                   {configFields.length === 0 && (
                     <Table.Tr>
-                      <Table.Td colSpan={8} ta="center" c="dimmed" py="md">
+                      <Table.Td colSpan={9} ta="center" c="dimmed" py="md">
                         No hay campos configurables. Agrega uno con el botón de arriba.
                       </Table.Td>
                     </Table.Tr>
@@ -593,28 +696,105 @@ export default function DashboardPage() {
       {/* ── Modal: Agregar campo ──────────────────────────────────────────────── */}
       <Modal opened={addFieldOpen} onClose={() => setAddFieldOpen(false)} title="Agregar campo" size="md" centered>
         <Stack>
-          <TextInput label="Clave (identificador)" placeholder="ej: numero_serie"
+          <TextInput
+            label="Clave (identificador)"
+            placeholder="ej: numero_serie"
             description="Solo letras, números y guión bajo. No se puede cambiar después."
-            value={newFieldKey} onChange={(e) => setNewFieldKey(e.currentTarget.value)} />
-          <TextInput label="Etiqueta (se muestra en tabla)" placeholder="ej: Número de Serie"
-            value={newFieldLabel} onChange={(e) => setNewFieldLabel(e.currentTarget.value)} />
-          <TextInput label="Pregunta (pregunta del bot)" placeholder="ej: ¿Cuál es el número de serie del equipo?"
-            value={newFieldQuestion} onChange={(e) => setNewFieldQuestion(e.currentTarget.value)} />
-          <Select label="Tipo de dato" value={newFieldType}
-            onChange={(val) => { if (val) setNewFieldType(val as BotField['type']); }}
-            data={[{ value: 'string', label: 'Texto' }, { value: 'numeric', label: 'Numérico' },
-              { value: 'date', label: 'Fecha' }, { value: 'photo', label: 'Foto(s)' }, { value: 'video', label: 'Video(s)' }]}
-            allowDeselect={false} />
-          <Select label="Origen" value={newFieldSource}
+            value={newFieldKey}
+            onChange={(e) => setNewFieldKey(e.currentTarget.value)}
+          />
+          <TextInput
+            label="Etiqueta (se muestra en tabla)"
+            placeholder="ej: Número de Serie"
+            value={newFieldLabel}
+            onChange={(e) => setNewFieldLabel(e.currentTarget.value)}
+          />
+          <TextInput
+            label="Pregunta (pregunta del bot)"
+            placeholder="ej: ¿Cuál es el número de serie del equipo?"
+            value={newFieldQuestion}
+            onChange={(e) => setNewFieldQuestion(e.currentTarget.value)}
+          />
+          <Select
+            label="Tipo de dato"
+            value={newFieldType}
+            onChange={(val) => {
+              if (val) setNewFieldType(val as BotField['type']);
+            }}
+            data={[
+              { value: 'string', label: 'Texto' },
+              { value: 'numeric', label: 'Número' },
+              { value: 'photo', label: 'Fotos / Videos' },
+              { value: 'boolean', label: 'Booleano (Sí / No)' },
+              { value: 'list', label: 'Lista de opciones' },
+            ]}
+            allowDeselect={false}
+          />
+
+          {/* Opciones de lista */}
+          {newFieldType === 'list' && (
+            <Stack gap="xs">
+              <Text size="sm" fw={600}>Opciones de la lista</Text>
+              <Group gap="xs">
+                <TextInput
+                  placeholder="Nueva opción…"
+                  value={newFieldOptionInput}
+                  onChange={(e) => setNewFieldOptionInput(e.currentTarget.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addListOption(); } }}
+                  style={{ flex: 1 }}
+                  size="xs"
+                />
+                <Button size="xs" variant="light" onClick={addListOption} disabled={!newFieldOptionInput.trim()}>
+                  Agregar
+                </Button>
+              </Group>
+              {newFieldOptions.length > 0 ? (
+                <Stack gap={4}>
+                  {newFieldOptions.map((opt, i) => (
+                    <Group key={i} gap="xs" justify="space-between" p={6}
+                      style={{ background: 'var(--mantine-color-gray-0)', borderRadius: 4 }}>
+                      <Text size="xs">{opt}</Text>
+                      <ActionIcon size="xs" color="red" variant="subtle" onClick={() => removeListOption(i)}>
+                        <IconTrash size={12} />
+                      </ActionIcon>
+                    </Group>
+                  ))}
+                </Stack>
+              ) : (
+                <Text size="xs" c="dimmed">Aún no hay opciones. Agrega al menos una.</Text>
+              )}
+            </Stack>
+          )}
+
+          <Select
+            label="Origen"
+            value={newFieldSource}
             onChange={(val) => { if (val) setNewFieldSource(val as FieldSource); }}
-            data={[{ value: 'bot', label: 'Chat (Bot) — el usuario lo envía por WhatsApp' },
-              { value: 'admin', label: 'Panel Admin — lo ingresa el administrador' }]}
-            allowDeselect={false} />
-          <Switch label="Campo requerido" size="sm" checked={newFieldRequired}
-            onChange={(e) => setNewFieldRequired(e.currentTarget.checked)} />
+            data={[
+              { value: 'bot', label: 'Chat (Bot) — el usuario lo envía por WhatsApp' },
+              { value: 'admin', label: 'Panel Admin — lo ingresa el administrador' },
+            ]}
+            allowDeselect={false}
+          />
+          <Switch
+            label="Campo requerido"
+            size="sm"
+            checked={newFieldRequired}
+            onChange={(e) => setNewFieldRequired(e.currentTarget.checked)}
+          />
           <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={() => setAddFieldOpen(false)}>Cancelar</Button>
-            <Button onClick={addField} disabled={!newFieldKey.trim() || !newFieldLabel.trim() || !newFieldQuestion.trim()}>Agregar</Button>
+            <Button
+              onClick={addField}
+              disabled={
+                !newFieldKey.trim() ||
+                !newFieldLabel.trim() ||
+                !newFieldQuestion.trim() ||
+                (newFieldType === 'list' && newFieldOptions.length === 0)
+              }
+            >
+              Agregar
+            </Button>
           </Group>
         </Stack>
       </Modal>
@@ -650,11 +830,20 @@ export default function DashboardPage() {
               </Group>
             </Stack>
           )}
-          <TextInput label="Etiqueta (para tabla)" placeholder="Etiqueta para tabla"
-            value={editFieldLabel} onChange={(e) => setEditFieldLabel(e.currentTarget.value)} />
-          <Textarea label="Pregunta (para bot)" placeholder="Pregunta del bot"
-            value={editFieldQuestion} onChange={(e) => setEditFieldQuestion(e.currentTarget.value)}
-            autosize minRows={2} />
+          <TextInput
+            label="Etiqueta (para tabla)"
+            placeholder="Etiqueta para tabla"
+            value={editFieldLabel}
+            onChange={(e) => setEditFieldLabel(e.currentTarget.value)}
+          />
+          <Textarea
+            label="Pregunta (para bot)"
+            placeholder="Pregunta del bot"
+            value={editFieldQuestion}
+            onChange={(e) => setEditFieldQuestion(e.currentTarget.value)}
+            autosize
+            minRows={2}
+          />
           <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={cancelEditField}>Cancelar</Button>
             <Button onClick={saveEditField} disabled={!editFieldLabel.trim() || !editFieldQuestion.trim()}>Guardar</Button>

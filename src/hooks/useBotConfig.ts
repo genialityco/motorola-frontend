@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { BotMessages, BotField, FieldType, FieldSource } from '@/types';
+import { BotMessages, BotField, FieldType, FieldSource, SystemFieldConfig } from '@/types';
 import { configService } from '@/services/config.service';
 
 const DEFAULT_BOT_MESSAGES: BotMessages = {
@@ -26,9 +26,17 @@ const DEFAULT_BOT_FIELDS: BotField[] = [
   { key: 'photos.repair', label: 'Fotos de Reparación', question: 'Fotos de Reparación', order: 6, normalize: false, type: 'photo', source: 'admin', required: false, visible: false, excel: false },
 ];
 
+const SYSTEM_FIELDS_DEFAULT: SystemFieldConfig[] = [
+  { key: 'ticketNumber', label: 'Ticket #', visible: true },
+  { key: 'createdAt', label: 'Creación', visible: true },
+  { key: 'estado', label: 'Estado', visible: true },
+  { key: 'reporter', label: 'Reportado Por', visible: true },
+];
+
 export function useBotConfig() {
   const [configMessages, setConfigMessages] = useState<BotMessages>(DEFAULT_BOT_MESSAGES);
   const [configFields, setConfigFields] = useState<BotField[]>(DEFAULT_BOT_FIELDS);
+  const [systemFields, setSystemFields] = useState<SystemFieldConfig[]>(SYSTEM_FIELDS_DEFAULT);
   const [savingMessages, setSavingMessages] = useState(false);
   const [savingFields, setSavingFields] = useState(false);
   const [infoTab, setInfoTab] = useState<string | null>('messages');
@@ -41,6 +49,8 @@ export function useBotConfig() {
   const [newFieldType, setNewFieldType] = useState<FieldType>('string');
   const [newFieldSource, setNewFieldSource] = useState<FieldSource>('bot');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
+  const [newFieldOptions, setNewFieldOptions] = useState<string[]>([]);
+  const [newFieldOptionInput, setNewFieldOptionInput] = useState('');
 
   // Edit field modal state
   const [editFieldOpen, setEditFieldOpen] = useState(false);
@@ -65,7 +75,9 @@ export function useBotConfig() {
     const unsub = onSnapshot(
       doc(db, 'bot_config', 'ticket_fields'),
       (snap) => {
-        const fields = snap.exists() ? (snap.data()?.fields as BotField[] | undefined) : undefined;
+        const data = snap.exists() ? snap.data() : {};
+
+        const fields = data?.fields as BotField[] | undefined;
         let toUse: BotField[];
         if (fields && fields.length > 0) {
           const savedKeys = new Set(fields.map((f) => f.key));
@@ -75,6 +87,16 @@ export function useBotConfig() {
           toUse = DEFAULT_BOT_FIELDS;
         }
         setConfigFields([...toUse].sort((a, b) => a.order - b.order));
+
+        const savedSysFields = data?.systemFields as SystemFieldConfig[] | undefined;
+        if (savedSysFields && savedSysFields.length > 0) {
+          const savedKeys = new Set(savedSysFields.map((f) => f.key));
+          const merged = [
+            ...savedSysFields,
+            ...SYSTEM_FIELDS_DEFAULT.filter((f) => !savedKeys.has(f.key)),
+          ];
+          setSystemFields(merged);
+        }
       },
       () => {},
     );
@@ -97,6 +119,7 @@ export function useBotConfig() {
     try {
       await configService.saveFields(
         configFields.map((f, i) => ({ ...f, order: i })),
+        systemFields,
       );
     } catch (e) {
       console.error('Error guardando campos:', e);
@@ -148,46 +171,61 @@ export function useBotConfig() {
     setEditFieldQuestion('');
   };
 
+  const addListOption = () => {
+    const opt = newFieldOptionInput.trim();
+    if (!opt || newFieldOptions.includes(opt)) return;
+    setNewFieldOptions((prev) => [...prev, opt]);
+    setNewFieldOptionInput('');
+  };
+
+  const removeListOption = (idx: number) => {
+    setNewFieldOptions((prev) => prev.filter((_, i) => i !== idx));
+  };
+
   const addField = () => {
     const key = newFieldKey.trim().toLowerCase().replace(/\s+/g, '_');
     if (!key || !newFieldLabel.trim() || !newFieldQuestion.trim()) return;
     if (configFields.some((f) => f.key === key)) return;
-    setConfigFields((prev) => [
-      ...prev,
-      {
-        key,
-        label: newFieldLabel.trim(),
-        question: newFieldQuestion.trim(),
-        order: prev.length,
-        normalize: newFieldType === 'string',
-        type: newFieldType,
-        source: newFieldSource,
-        required: newFieldRequired,
-        visible: true,
-        excel: newFieldType !== 'photo' && newFieldType !== 'video',
-      },
-    ]);
+    const newField: BotField = {
+      key,
+      label: newFieldLabel.trim(),
+      question: newFieldQuestion.trim(),
+      order: configFields.length,
+      normalize: newFieldType === 'string',
+      type: newFieldType,
+      source: newFieldSource,
+      required: newFieldRequired,
+      visible: true,
+      excel: newFieldType !== 'photo' && newFieldType !== 'video',
+      ...(newFieldType === 'list' ? { options: newFieldOptions } : {}),
+    };
+    setConfigFields((prev) => [...prev, newField]);
     setNewFieldKey('');
     setNewFieldLabel('');
     setNewFieldQuestion('');
     setNewFieldType('string');
     setNewFieldSource('bot');
     setNewFieldRequired(false);
+    setNewFieldOptions([]);
+    setNewFieldOptionInput('');
     setAddFieldOpen(false);
   };
 
   return {
     configMessages, setConfigMessages,
     configFields, setConfigFields,
+    systemFields, setSystemFields,
     savingMessages, savingFields,
     infoTab, setInfoTab,
     addFieldOpen, setAddFieldOpen,
     newFieldKey, setNewFieldKey,
-    newFieldLabel: newFieldLabel, setNewFieldLabel,
+    newFieldLabel, setNewFieldLabel,
     newFieldQuestion, setNewFieldQuestion,
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
+    newFieldOptions, setNewFieldOptions,
+    newFieldOptionInput, setNewFieldOptionInput,
     editFieldOpen,
     editingFieldIdx,
     editFieldLabel, setEditFieldLabel,
@@ -195,6 +233,6 @@ export function useBotConfig() {
     saveMessages, saveFields,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
-    addField,
+    addField, addListOption, removeListOption,
   };
 }

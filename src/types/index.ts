@@ -19,40 +19,16 @@ export type TicketStatus =
 export interface Ticket {
   id: string;
   ticketNumber: string;
-  ciudad?: string;
-  canal?: string;
-  point: {
-    id: string;
-    name: string;
-  };
+  status: TicketStatus;
   reporter: {
     phone: string;
     name: string;
-  };
-  novelty: {
-    type: string;
-    description: string;
-  };
-  status: TicketStatus;
-  actors: {
-    workshopId?: string;
-    transporterId?: string;
-  };
-  budget: {
-    estimatedValue?: number;
-    approved?: boolean;
-  };
-  photos: {
-    evidence: string[];
-    repair: string[];
-    delivery: string[];
   };
   timestamps: {
     createdAt: number;
     updatedAt: number;
   };
-  observations?: string;
-  extraFields?: Record<string, string>;
+  extraFields?: Record<string, string | string[]>;
 }
 
 export interface StatusHistoryEntry {
@@ -64,7 +40,7 @@ export interface StatusHistoryEntry {
   timestamp: number;
 }
 
-export type FieldType = 'string' | 'numeric' | 'date' | 'photo' | 'video';
+export type FieldType = 'string' | 'numeric' | 'date' | 'photo' | 'video' | 'boolean' | 'list';
 export type FieldSource = 'bot' | 'admin' | 'auto';
 
 export interface BotMessages {
@@ -90,6 +66,13 @@ export interface BotField {
   required: boolean;
   visible?: boolean;
   excel?: boolean;
+  options?: string[];
+}
+
+export interface SystemFieldConfig {
+  key: string;
+  label: string;
+  visible: boolean;
 }
 
 export interface StandardField {

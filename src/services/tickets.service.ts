@@ -5,18 +5,15 @@ export const ticketsService = {
   transition: (ticketId: string, newStatus: TicketStatus, comments = 'Transición desde el Dashboard Web') =>
     apiClient.post(`/api/tickets/${ticketId}/transition`, { newStatus, comments }),
 
-  updateObservation: (ticketId: string, observations: string) =>
-    apiClient.patch(`/api/tickets/${ticketId}/observation`, { observations }),
+  deletePhoto: (ticketId: string, fieldKey: string, idx: number) =>
+    apiClient.delete(`/api/tickets/${ticketId}/photos/${fieldKey}/${idx}`),
 
-  deleteEvidencePhoto: (ticketId: string, idx: number) =>
-    apiClient.delete(`/api/tickets/${ticketId}/photos/evidence/${idx}`),
-
-  deleteRepairPhoto: (ticketId: string, idx: number) =>
-    apiClient.delete(`/api/tickets/${ticketId}/photos/repair/${idx}`),
-
-  uploadRepairPhoto: (ticketId: string, file: File) => {
+  uploadPhoto: (ticketId: string, fieldKey: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    return apiClient.postForm(`/api/tickets/${ticketId}/photos/repair`, formData);
+    return apiClient.postForm(`/api/tickets/${ticketId}/photos/${fieldKey}`, formData);
   },
+
+  updateExtraField: (ticketId: string, fieldKey: string, value: string) =>
+    apiClient.patch(`/api/tickets/${ticketId}/extra/${fieldKey}`, { value }),
 };
