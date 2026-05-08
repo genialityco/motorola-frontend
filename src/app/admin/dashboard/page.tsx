@@ -61,12 +61,14 @@ const ACTIVE_TICKET_STATUSES = new Set(['REPORTADO', 'REVISION', 'EN_REPARACION'
 
 // ── Utility ────────────────────────────────────────────────────────────────────
 function getFieldValue(ticket: Ticket, key: string): string {
-  const val = ticket.extraFields?.[key];
-  if (val === undefined || val === null) return '';
-  if (Array.isArray(val)) return val.length > 0 ? `${val.length} archivo(s)` : '';
-  if (val === 'true') return 'Sí';
-  if (val === 'false') return 'No';
-  return val;
+  if (ticket.extraFields?.[key]) return String(ticket.extraFields[key]);
+  const parts = key.split('.');
+  let val: unknown = ticket;
+  for (const part of parts) {
+    if (val && typeof val === 'object') val = (val as Record<string, unknown>)[part];
+    else return '';
+  }
+  return typeof val === 'string' ? val : '';
 }
 
 export default function DashboardPage() {
@@ -860,9 +862,11 @@ export default function DashboardPage() {
             <Table striped highlightOnHover>
               <Table.Thead>
                 <Table.Tr>
-                  <Table.Th>Ticket #</Table.Th><Table.Th>Estado</Table.Th>
-                  <Table.Th>Ciudad</Table.Th><Table.Th>Canal</Table.Th>
-                  <Table.Th>Novedad</Table.Th><Table.Th>Fecha</Table.Th><Table.Th></Table.Th>
+                  <Table.Th>Ticket #</Table.Th>
+                  <Table.Th>Estado</Table.Th>
+                  {visibleFields.map((f) => <Table.Th key={f.key}>{f.label || f.key}</Table.Th>)}
+                  <Table.Th>Fecha</Table.Th>
+                  <Table.Th></Table.Th>
                 </Table.Tr>
               </Table.Thead>
               <Table.Tbody>
@@ -870,9 +874,7 @@ export default function DashboardPage() {
                   <Table.Tr key={t.id}>
                     <Table.Td fw={500}>{t.ticketNumber}</Table.Td>
                     <Table.Td><Badge size="sm" color={STATUS_COLORS[t.status] || 'gray'}>{t.status}</Badge></Table.Td>
-                    <Table.Td>{t.ciudad || '—'}</Table.Td>
-                    <Table.Td>{t.canal || '—'}</Table.Td>
-                    <Table.Td>{t.novelty?.description || t.novelty?.type || '—'}</Table.Td>
+                    {visibleFields.map((f) => <Table.Td key={f.key}>{getFieldValue(t, f.key) || '—'}</Table.Td>)}
                     <Table.Td>{t.timestamps?.createdAt ? new Date(t.timestamps.createdAt).toLocaleDateString('es-CO') : '—'}</Table.Td>
                     <Table.Td>
                       <Button component={Link} href={`/admin/dashboard/tickets/${t.id}`} size="xs" variant="subtle"
