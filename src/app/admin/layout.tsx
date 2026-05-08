@@ -119,12 +119,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           label="Chats WhatsApp"
           leftSection={<IconMessage size="1rem" stroke={1.5} />}
         />
-        <NavLink
+        {/* <NavLink
           component={Link}
           href="/admin/dev/simulator"
           label="Simulador Bot"
           leftSection={<IconSettings size="1rem" stroke={1.5} />}
-        />
+        /> */}
       </AppShell.Navbar>
 
       <AppShell.Main>
