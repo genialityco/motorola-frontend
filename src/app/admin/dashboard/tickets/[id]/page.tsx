@@ -411,13 +411,6 @@ export default function TicketDetailPage() {
                   <Text size="sm">
                     {entry.timestamp ? new Date(entry.timestamp).toLocaleString("es-CO") : "—"}
                   </Text>
-                  {entry.comments && <Text size="xs" c="dimmed">{entry.comments}</Text>}
-                  {entry.changedBy?.role && (
-                    <Text size="xs" c="dimmed">
-                      Por: {entry.changedBy.role}
-                      {entry.changedBy.uid ? ` (${entry.changedBy.uid.slice(0, 8)}…)` : ""}
-                    </Text>
-                  )}
                 </Timeline.Item>
               ))}
             </Timeline>
