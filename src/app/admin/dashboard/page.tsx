@@ -61,9 +61,20 @@ const ACTIVE_TICKET_STATUSES = new Set(['REPORTADO', 'REVISION', 'EN_REPARACION'
 
 // ── Utility ────────────────────────────────────────────────────────────────────
 function getFieldValue(ticket: Ticket, key: string): string {
-  if (ticket.extraFields?.[key]) return String(ticket.extraFields[key]);
+  const extraFields = (ticket.extraFields ?? {}) as Record<string, unknown>;
   const parts = key.split('.');
-  let val: unknown = ticket;
+
+  // Traverse within extraFields first (handles nested objects like novelty.description)
+  let val: unknown = extraFields;
+  for (const part of parts) {
+    if (val && typeof val === 'object') val = (val as Record<string, unknown>)[part];
+    else { val = undefined; break; }
+  }
+  if (typeof val === 'string') return val;
+  if (Array.isArray(val)) return val.join(', ');
+
+  // Fallback: traverse on the whole ticket (for system fields like reporter.phone)
+  val = ticket;
   for (const part of parts) {
     if (val && typeof val === 'object') val = (val as Record<string, unknown>)[part];
     else return '';
