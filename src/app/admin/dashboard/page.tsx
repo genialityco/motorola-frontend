@@ -194,8 +194,6 @@ export default function DashboardPage() {
         'Teléfono Reportante': t.reporter?.phone || '',
         'Descripción': t.novelty?.description || '',
         'Tipo Novedad': t.novelty?.type || '',
-        'Fotos Evidencia': (t.photos?.evidence || []).join(' | '),
-        'Fotos Reparación': (t.photos?.repair || []).join(' | '),
         'Fecha Creación': t.timestamps?.createdAt ? new Date(t.timestamps.createdAt).toLocaleString('es-CO') : '',
       });
       return row;
