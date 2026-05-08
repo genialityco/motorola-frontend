@@ -17,13 +17,13 @@ const DEFAULT_BOT_MESSAGES: BotMessages = {
 };
 
 const DEFAULT_BOT_FIELDS: BotField[] = [
-  { key: 'ciudad', label: 'Ciudad', question: '¿En qué ciudad se encuentra el punto de venta?', order: 0, normalize: true, type: 'string', source: 'bot', required: true, visible: true },
-  { key: 'canal', label: 'Canal', question: '¿Cuál es el canal de venta? (ejemplo: Retail, Operador, Online):', order: 1, normalize: true, type: 'string', source: 'bot', required: true, visible: true },
-  { key: 'punto', label: 'Punto de Venta', question: '¿Cuál es el nombre del punto de venta?', order: 2, normalize: true, type: 'string', source: 'bot', required: true, visible: true },
-  { key: 'novelty.type', label: 'Tipo de Novedad', question: 'Tipo de Novedad', order: 3, normalize: false, type: 'string', source: 'bot', required: false, visible: true },
-  { key: 'novelty.description', label: 'Descripción / Novedad', question: 'Descripción / Novedad', order: 4, normalize: false, type: 'string', source: 'bot', required: true, visible: true },
-  { key: 'photos.evidence', label: 'Fotos de Evidencia', question: 'Fotos de Evidencia', order: 5, normalize: false, type: 'photo', source: 'bot', required: false, visible: false },
-  { key: 'photos.repair', label: 'Fotos de Reparación', question: 'Fotos de Reparación', order: 6, normalize: false, type: 'photo', source: 'admin', required: false, visible: false },
+  { key: 'ciudad', label: 'Ciudad', question: '¿En qué ciudad se encuentra el punto de venta?', order: 0, normalize: true, type: 'string', source: 'bot', required: true, visible: true, excel: true },
+  { key: 'canal', label: 'Canal', question: '¿Cuál es el canal de venta? (ejemplo: Retail, Operador, Online):', order: 1, normalize: true, type: 'string', source: 'bot', required: true, visible: true, excel: true },
+  { key: 'punto', label: 'Punto de Venta', question: '¿Cuál es el nombre del punto de venta?', order: 2, normalize: true, type: 'string', source: 'bot', required: true, visible: true, excel: true },
+  { key: 'novelty.type', label: 'Tipo de Novedad', question: 'Tipo de Novedad', order: 3, normalize: false, type: 'string', source: 'bot', required: false, visible: true, excel: false },
+  { key: 'novelty.description', label: 'Descripción / Novedad', question: 'Descripción / Novedad', order: 4, normalize: false, type: 'string', source: 'bot', required: true, visible: true, excel: false },
+  { key: 'photos.evidence', label: 'Fotos de Evidencia', question: 'Fotos de Evidencia', order: 5, normalize: false, type: 'photo', source: 'bot', required: false, visible: false, excel: false },
+  { key: 'photos.repair', label: 'Fotos de Reparación', question: 'Fotos de Reparación', order: 6, normalize: false, type: 'photo', source: 'admin', required: false, visible: false, excel: false },
 ];
 
 export function useBotConfig() {
@@ -164,6 +164,7 @@ export function useBotConfig() {
         source: newFieldSource,
         required: newFieldRequired,
         visible: true,
+        excel: newFieldType !== 'photo' && newFieldType !== 'video',
       },
     ]);
     setNewFieldKey('');

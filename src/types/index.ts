@@ -89,6 +89,7 @@ export interface BotField {
   source: FieldSource;
   required: boolean;
   visible?: boolean;
+  excel?: boolean;
 }
 
 export interface StandardField {

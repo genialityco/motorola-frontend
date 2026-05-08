@@ -188,12 +188,10 @@ export default function DashboardPage() {
   const exportToExcel = () => {
     const data = tickets.map((t) => {
       const row: Record<string, unknown> = { 'Ticket #': t.ticketNumber, 'Estado': t.status };
-      configFields.forEach((f) => { row[f.key] = getFieldValue(t, f.key) || ''; });
+      configFields.filter((f) => f.excel === true).forEach((f) => { row[f.label || f.key] = getFieldValue(t, f.key) || ''; });
       Object.assign(row, {
         'Reportado Por': hostsMap.get(t.reporter?.phone) || t.reporter?.name || '',
         'Teléfono Reportante': t.reporter?.phone || '',
-        'Descripción': t.novelty?.description || '',
-        'Tipo Novedad': t.novelty?.type || '',
         'Fecha Creación': t.timestamps?.createdAt ? new Date(t.timestamps.createdAt).toLocaleString('es-CO') : '',
       });
       return row;
@@ -502,6 +500,7 @@ export default function DashboardPage() {
                     <Table.Th style={{ width: 85 }}>Requerido</Table.Th>
                     <Table.Th style={{ width: 90 }}>Normalizar</Table.Th>
                     <Table.Th style={{ width: 100 }}>Visible</Table.Th>
+                    <Table.Th style={{ width: 100 }}>Excel</Table.Th>
                     <Table.Th style={{ width: 70 }}>Orden</Table.Th>
                     <Table.Th style={{ width: 40 }}></Table.Th>
                   </Table.Tr>
@@ -545,6 +544,13 @@ export default function DashboardPage() {
                           setConfigFields(updated);
                         }} />
                       </Table.Td>
+                      <Table.Td style={{ textAlign: 'center' }}>
+                        <Switch size="xs" checked={field.excel ?? false} onChange={(e) => {
+                          const updated = [...configFields];
+                          updated[idx] = { ...field, excel: e.currentTarget.checked };
+                          setConfigFields(updated);
+                        }} />
+                      </Table.Td>
                       <Table.Td>
                         <Group gap={2} wrap="nowrap">
                           <Tooltip label="Subir" withArrow>
@@ -571,7 +577,7 @@ export default function DashboardPage() {
                   ))}
                   {configFields.length === 0 && (
                     <Table.Tr>
-                      <Table.Td colSpan={7} ta="center" c="dimmed" py="md">
+                      <Table.Td colSpan={8} ta="center" c="dimmed" py="md">
                         No hay campos configurables. Agrega uno con el botón de arriba.
                       </Table.Td>
                     </Table.Tr>
