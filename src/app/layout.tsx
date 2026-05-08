@@ -4,6 +4,7 @@ import '@mantine/core/styles.css';
 import "./globals.css";
 
 import { MantineProvider, ColorSchemeScript } from '@mantine/core';
+import { ToastProvider } from '@/components/toast-provider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,7 +33,9 @@ export default function RootLayout({
       </head>
       <body>
         <MantineProvider defaultColorScheme="auto">
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </MantineProvider>
       </body>
     </html>

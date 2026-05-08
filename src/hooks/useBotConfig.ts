@@ -23,7 +23,7 @@ const DEFAULT_BOT_FIELDS: BotField[] = [
   { key: 'novelty.type', label: 'Tipo de Novedad', question: 'Tipo de Novedad', order: 3, normalize: false, type: 'string', source: 'bot', required: false, visible: true, excel: false },
   { key: 'novelty.description', label: 'Descripción / Novedad', question: 'Descripción / Novedad', order: 4, normalize: false, type: 'string', source: 'bot', required: true, visible: true, excel: false },
   { key: 'photos.evidence', label: 'Fotos de Evidencia', question: 'Fotos de Evidencia', order: 5, normalize: false, type: 'photo', source: 'bot', required: false, visible: false, excel: false },
-  { key: 'photos.repair', label: 'Fotos de Reparación', question: 'Fotos de Reparación', order: 6, normalize: false, type: 'photo', source: 'admin', required: false, visible: false, excel: false },
+  { key: 'photos.repair', label: 'Fotos de Reparación', question: 'Fotos de Reparación', placeholder: 'Sube aquí las fotos de reparación', order: 6, normalize: false, type: 'photo', source: 'admin', required: false, visible: false, excel: false },
 ];
 
 const SYSTEM_FIELDS_DEFAULT: SystemFieldConfig[] = [
@@ -46,6 +46,7 @@ export function useBotConfig() {
   const [newFieldKey, setNewFieldKey] = useState('');
   const [newFieldLabel, setNewFieldLabel] = useState('');
   const [newFieldQuestion, setNewFieldQuestion] = useState('');
+  const [newFieldPlaceholder, setNewFieldPlaceholder] = useState('');
   const [newFieldType, setNewFieldType] = useState<FieldType>('string');
   const [newFieldSource, setNewFieldSource] = useState<FieldSource>('bot');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
@@ -57,6 +58,7 @@ export function useBotConfig() {
   const [editingFieldIdx, setEditingFieldIdx] = useState<number | null>(null);
   const [editFieldLabel, setEditFieldLabel] = useState('');
   const [editFieldQuestion, setEditFieldQuestion] = useState('');
+  const [editFieldPlaceholder, setEditFieldPlaceholder] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -145,23 +147,31 @@ export function useBotConfig() {
     if (!field) return;
     setEditingFieldIdx(idx);
     setEditFieldLabel(field.label);
-    setEditFieldQuestion(field.question);
+    setEditFieldQuestion(field.question ?? '');
+    setEditFieldPlaceholder(field.placeholder ?? '');
     setEditFieldOpen(true);
   };
 
   const saveEditField = () => {
-    if (editingFieldIdx === null || !editFieldLabel.trim() || !editFieldQuestion.trim()) return;
+    if (editingFieldIdx === null || !editFieldLabel.trim()) return;
+    const currentField = configFields[editingFieldIdx];
+    if (!currentField) return;
+    const isAdminField = currentField.source === 'admin';
+    if (!isAdminField && !editFieldQuestion.trim()) return;
+    if (isAdminField && !editFieldPlaceholder.trim()) return;
     const updated = [...configFields];
     updated[editingFieldIdx] = {
       ...updated[editingFieldIdx],
       label: editFieldLabel.trim(),
       question: editFieldQuestion.trim(),
+      placeholder: editFieldPlaceholder.trim(),
     };
     setConfigFields(updated);
     setEditFieldOpen(false);
     setEditingFieldIdx(null);
     setEditFieldLabel('');
     setEditFieldQuestion('');
+    setEditFieldPlaceholder('');
   };
 
   const cancelEditField = () => {
@@ -169,6 +179,7 @@ export function useBotConfig() {
     setEditingFieldIdx(null);
     setEditFieldLabel('');
     setEditFieldQuestion('');
+    setEditFieldPlaceholder('');
   };
 
   const addListOption = () => {
@@ -184,12 +195,15 @@ export function useBotConfig() {
 
   const addField = () => {
     const key = newFieldKey.trim().toLowerCase().replace(/\s+/g, '_');
-    if (!key || !newFieldLabel.trim() || !newFieldQuestion.trim()) return;
+    if (!key || !newFieldLabel.trim()) return;
+    const isAdminField = newFieldSource === 'admin';
+    if ((!isAdminField && !newFieldQuestion.trim()) || (isAdminField && !newFieldPlaceholder.trim())) return;
     if (configFields.some((f) => f.key === key)) return;
     const newField: BotField = {
       key,
       label: newFieldLabel.trim(),
       question: newFieldQuestion.trim(),
+      placeholder: newFieldPlaceholder.trim(),
       order: configFields.length,
       normalize: newFieldType === 'string',
       type: newFieldType,
@@ -203,6 +217,7 @@ export function useBotConfig() {
     setNewFieldKey('');
     setNewFieldLabel('');
     setNewFieldQuestion('');
+    setNewFieldPlaceholder('');
     setNewFieldType('string');
     setNewFieldSource('bot');
     setNewFieldRequired(false);
@@ -221,6 +236,7 @@ export function useBotConfig() {
     newFieldKey, setNewFieldKey,
     newFieldLabel, setNewFieldLabel,
     newFieldQuestion, setNewFieldQuestion,
+    newFieldPlaceholder, setNewFieldPlaceholder,
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
@@ -230,6 +246,7 @@ export function useBotConfig() {
     editingFieldIdx,
     editFieldLabel, setEditFieldLabel,
     editFieldQuestion, setEditFieldQuestion,
+    editFieldPlaceholder, setEditFieldPlaceholder,
     saveMessages, saveFields,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,

@@ -58,7 +58,8 @@ export interface BotMessages {
 export interface BotField {
   key: string;
   label: string;
-  question: string;
+  question?: string;
+  placeholder?: string;
   order: number;
   normalize: boolean;
   type: FieldType;

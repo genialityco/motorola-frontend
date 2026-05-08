@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Title, Paper, Group, Text, Badge, Button, Stack, Loader,
   Alert, Image, SimpleGrid, Timeline, Collapse, ActionIcon,
-  Tooltip, FileButton, Box, Textarea, Modal,
+  Tooltip, FileButton, Box, Textarea, Modal, TextInput, Select,
 } from "@mantine/core";
 import { BotField, FieldType, TicketStatus } from "@/types";
 import { useTicketDetail } from "@/hooks/useTicketDetail";
@@ -20,10 +20,18 @@ const STATUS_OPTIONS: TicketStatus[] = [
   "REPORTADO", "REVISION", "EN_REPARACION", "REPARADO", "ENTREGADO", "FINALIZADO",
 ];
 
+function getNestedFieldValue(obj: Record<string, unknown>, path: string) {
+  return path.split('.').reduce<unknown>((current, part) => {
+    if (!current || typeof current !== 'object') return undefined;
+    return (current as Record<string, unknown>)[part];
+  }, obj);
+}
+
 // ── Componente acordeón para campos de foto ──────────────────────────────────
 function PhotoFieldAccordion({
   field,
   photos,
+  mediaKind,
   ticketId,
   expanded,
   onToggle,
@@ -34,6 +42,7 @@ function PhotoFieldAccordion({
 }: {
   field: BotField;
   photos: string[];
+  mediaKind: 'photo' | 'video';
   ticketId: string;
   expanded: boolean;
   onToggle: () => void;
@@ -65,7 +74,7 @@ function PhotoFieldAccordion({
         justify="space-between"
       >
         <Text fw={700}>
-          📷 {field.label} ({count} {count === 1 ? "foto" : "fotos"})
+          📎 {field.label} ({count} {count === 1 ? "archivo" : "archivos"})
         </Text>
         <Text>{expanded ? "▼" : "▶"}</Text>
       </Button>
@@ -74,7 +83,15 @@ function PhotoFieldAccordion({
           <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="md" mt="sm">
             {photos.map((photoUrl, idx) => (
               <Paper key={idx} p="xs" withBorder radius="md" style={{ position: "relative" }}>
-                <Image src={photoUrl} alt={`${field.label} ${idx + 1}`} radius="md" fit="cover" h={200} />
+                {mediaKind === 'video' ? (
+                  <video
+                    src={photoUrl}
+                    controls
+                    style={{ width: '100%', height: 200, objectFit: 'cover', borderRadius: 8 }}
+                  />
+                ) : (
+                  <Image src={photoUrl} alt={`${field.label} ${idx + 1}`} radius="md" fit="cover" h={200} />
+                )}
                 <Tooltip label="Eliminar foto" withArrow>
                   <ActionIcon
                     color="red"
@@ -95,7 +112,7 @@ function PhotoFieldAccordion({
           <Alert color="gray" mt="sm">No hay fotos en este campo.</Alert>
         )}
 
-        {/* Subir nuevas fotos (solo si es campo admin o de cualquier tipo) */}
+        {/* Subir nuevos archivos multimedia */}
         <Box mt="sm">
           <FileButton
             resetRef={resetRef}
@@ -126,6 +143,114 @@ function PhotoFieldAccordion({
   );
 }
 
+function AdminFieldEditor({
+  field,
+  value,
+  onSave,
+  saving,
+}: {
+  field: BotField;
+  value: string | string[] | undefined;
+  onSave: (fieldKey: string, value: string) => Promise<void>;
+  saving: boolean;
+}) {
+  const normalizeValue = (raw: string | string[] | undefined) => {
+    if (Array.isArray(raw)) return raw.join(', ');
+    return typeof raw === 'string' ? raw : '';
+  };
+
+  const [draft, setDraft] = useState(normalizeValue(value));
+
+  useEffect(() => {
+    setDraft(normalizeValue(value));
+  }, [value, field.key]);
+
+  const hasValue = normalizeValue(value).trim().length > 0;
+  const placeholder = field.placeholder || field.question || `Completa ${field.label}`;
+
+  const handleSave = async () => {
+    const nextValue = draft.trim();
+    if (!nextValue) return;
+    await onSave(field.key, nextValue);
+  };
+
+  const input = (() => {
+    if (field.type === 'list' && field.options && field.options.length > 0) {
+      return (
+        <Select
+          value={draft || null}
+          onChange={(val) => setDraft(val || '')}
+          data={field.options.map((opt) => ({ value: opt, label: opt }))}
+          placeholder={placeholder}
+          allowDeselect
+        />
+      );
+    }
+
+    if (field.type === 'boolean') {
+      return (
+        <Select
+          value={draft || null}
+          onChange={(val) => setDraft(val || '')}
+          data={[
+            { value: 'true', label: 'Sí' },
+            { value: 'false', label: 'No' },
+          ]}
+          placeholder={placeholder}
+          allowDeselect
+        />
+      );
+    }
+
+    if (field.type === 'numeric' || field.type === 'date') {
+      return (
+        <TextInput
+          type={field.type === 'numeric' ? 'number' : 'date'}
+          value={draft}
+          onChange={(e) => setDraft(e.currentTarget.value)}
+          placeholder={placeholder}
+        />
+      );
+    }
+
+    return (
+      <Textarea
+        value={draft}
+        onChange={(e) => setDraft(e.currentTarget.value)}
+        placeholder={placeholder}
+        autosize
+        minRows={2}
+      />
+    );
+  })();
+
+  return (
+    <Paper withBorder radius="md" p="md">
+      <Stack gap="xs">
+        <Group justify="space-between" align="flex-start" wrap="nowrap">
+          <div>
+            <Text fw={700} size="sm">{field.label}</Text>
+            <Text size="xs" c="dimmed">
+              {hasValue ? 'Ya está lleno. Puedes actualizarlo.' : 'Aún está vacío. Completa el campo.'}
+            </Text>
+          </div>
+        </Group>
+
+        {input}
+
+        <Group justify="space-between" align="center">
+          <Text size="xs" c="dimmed">
+            {field.placeholder ? `Ejemplo: ${field.placeholder}` : 'Este campo es editable por el administrador.'}
+          </Text>
+          <Button size="xs" onClick={handleSave} loading={saving} disabled={!draft.trim()}>
+            {hasValue ? 'Actualizar campo' : 'Guardar campo'}
+          </Button>
+        </Group>
+      </Stack>
+    </Paper>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function TicketDetailPage() {
   const params = useParams();
@@ -141,12 +266,14 @@ export default function TicketDetailPage() {
     toggleField,
     deletingPhoto,
     uploadingField,
+    updatingFieldKey,
     requestModal, setRequestModal,
     requestMessage, setRequestMessage,
     requestingField,
     changeStatus,
     deletePhoto,
     uploadPhotos,
+    updateExtraField,
     requestFieldImprovement,
   } = useTicketDetail(ticketId);
 
@@ -191,16 +318,18 @@ export default function TicketDetailPage() {
       {/* ── Campos configurados ── */}
       <Stack gap="md" mb="xl">
         {configFields.map((field) => {
-          const isPhotoField = field.type === ("photo" as FieldType);
-          const value = extraFields[field.key];
+          const isMediaField = field.type === 'photo' || field.type === 'video';
+          const isAdminField = field.source === 'admin' && !isMediaField;
+          const value = getNestedFieldValue(extraFields, field.key) as string | string[] | undefined;
 
-          if (isPhotoField) {
+          if (isMediaField) {
             const photos = Array.isArray(value) ? value : [];
             return (
               <PhotoFieldAccordion
                 key={field.key}
                 field={field}
                 photos={photos}
+                mediaKind={field.type === 'video' ? 'video' : 'photo'}
                 ticketId={ticketId}
                 expanded={!!expandedFields[field.key]}
                 onToggle={() => toggleField(field.key)}
@@ -208,6 +337,18 @@ export default function TicketDetailPage() {
                 onUpload={uploadPhotos}
                 uploadingField={uploadingField}
                 deletingPhoto={deletingPhoto}
+              />
+            );
+          }
+
+          if (isAdminField) {
+            return (
+              <AdminFieldEditor
+                key={field.key}
+                field={field}
+                value={value}
+                saving={updatingFieldKey === field.key}
+                onSave={updateExtraField}
               />
             );
           }

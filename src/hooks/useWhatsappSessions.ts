@@ -3,8 +3,10 @@ import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ChatSession, Host, SessionMessage } from '@/types';
 import { whatsappService } from '@/services/whatsapp.service';
+import { useAppToast } from '@/components/toast-provider';
 
 export function useWhatsappSessions() {
+  const { showToast } = useAppToast();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [hostNames, setHostNames] = useState<Record<string, string>>({});
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
@@ -89,9 +91,19 @@ export function useWhatsappSessions() {
     setError(null);
     try {
       await whatsappService.sendAdminMessage(selectedPhone, text);
+      showToast({
+        type: 'success',
+        title: 'Mensaje enviado',
+        message: `Se envió un mensaje a ${hostNames[selectedPhone] ?? selectedPhone}.`,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error enviando el mensaje.';
       setError(msg);
+      showToast({
+        type: 'error',
+        title: 'No se pudo enviar el mensaje',
+        message: msg,
+      });
     } finally {
       setSending(false);
     }
@@ -103,10 +115,20 @@ export function useWhatsappSessions() {
     try {
       await whatsappService.toggleBot(selectedPhone, enabled);
       setBotEnabled(enabled);
+      showToast({
+        type: 'success',
+        title: enabled ? 'Bot activado' : 'Bot desactivado',
+        message: `${hostNames[selectedPhone] ?? selectedPhone} quedó ${enabled ? 'con bot activo' : 'sin bot activo'}.`,
+      });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al cambiar el estado del bot.';
       setError(msg);
       setBotEnabled(!enabled);
+      showToast({
+        type: 'error',
+        title: 'No se pudo cambiar el bot',
+        message: msg,
+      });
     } finally {
       setTogglingBot(false);
     }

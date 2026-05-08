@@ -3,8 +3,10 @@ import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Host } from '@/types';
 import { hostsService } from '@/services/hosts.service';
+import { useAppToast } from '@/components/toast-provider';
 
 export function useHosts() {
+  const { showToast } = useAppToast();
   const [hosts, setHosts] = useState<Host[]>([]);
   const [selectedHost, setSelectedHost] = useState<Host | null>(null);
   const [hostTicketsModalOpen, setHostTicketsModalOpen] = useState(false);
@@ -45,8 +47,18 @@ export function useHosts() {
     try {
       await hostsService.updateNombre(editingHost.telefono, editNombre.trim());
       setEditHostModalOpen(false);
+      showToast({
+        type: 'success',
+        title: 'Host actualizado',
+        message: `El nombre de ${editingHost.telefono} se actualizó correctamente.`,
+      });
     } catch (e) {
       console.error('Error actualizando host:', e);
+      showToast({
+        type: 'error',
+        title: 'No se pudo actualizar el host',
+        message: 'Intenta nuevamente en unos segundos.',
+      });
     } finally {
       setSavingHost(false);
     }

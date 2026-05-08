@@ -4,8 +4,10 @@ import { db } from '@/lib/firebase';
 import { Ticket, TicketStatus, StatusHistoryEntry } from '@/types';
 import { ticketsService } from '@/services/tickets.service';
 import { whatsappService } from '@/services/whatsapp.service';
+import { useAppToast } from '@/components/toast-provider';
 
 export function useTicketDetail(ticketId: string) {
+  const { showToast } = useAppToast();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [history, setHistory] = useState<StatusHistoryEntry[]>([]);
   const [loadingStatus, setLoadingStatus] = useState<TicketStatus | null>(null);
@@ -18,6 +20,7 @@ export function useTicketDetail(ticketId: string) {
   // Photo operations
   const [deletingPhoto, setDeletingPhoto] = useState<{ fieldKey: string; idx: number } | null>(null);
   const [uploadingField, setUploadingField] = useState<string | null>(null);
+  const [updatingFieldKey, setUpdatingFieldKey] = useState<string | null>(null);
 
   // Request field improvement modal
   const [requestModal, setRequestModal] = useState<{ fieldKey: string; fieldLabel: string } | null>(null);
@@ -87,9 +90,19 @@ export function useTicketDetail(ticketId: string) {
     setErrorStatus(null);
     try {
       await ticketsService.transition(ticketId, newStatus);
+      showToast({
+        type: 'success',
+        title: 'Estado actualizado',
+        message: `El ticket cambió a ${newStatus}.`,
+      });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Algo salió mal al transicionar el estado.';
       setErrorStatus(msg);
+      showToast({
+        type: 'error',
+        title: 'No se pudo cambiar el estado',
+        message: msg,
+      });
     } finally {
       setLoadingStatus(null);
     }
@@ -121,6 +134,29 @@ export function useTicketDetail(ticketId: string) {
       setErrorStatus(msg);
     } finally {
       setUploadingField(null);
+    }
+  };
+
+  const updateExtraField = async (fieldKey: string, value: string) => {
+    setUpdatingFieldKey(fieldKey);
+    setErrorStatus(null);
+    try {
+      await ticketsService.updateExtraField(ticketId, fieldKey, value);
+      showToast({
+        type: 'success',
+        title: 'Campo actualizado',
+        message: 'El valor se guardó correctamente.',
+      });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Error al actualizar el campo.';
+      setErrorStatus(msg);
+      showToast({
+        type: 'error',
+        title: 'No se pudo actualizar el campo',
+        message: msg,
+      });
+    } finally {
+      setUpdatingFieldKey(null);
     }
   };
 
@@ -156,12 +192,14 @@ export function useTicketDetail(ticketId: string) {
     toggleField,
     deletingPhoto,
     uploadingField,
+    updatingFieldKey,
     requestModal, setRequestModal,
     requestMessage, setRequestMessage,
     requestingField,
     changeStatus,
     deletePhoto,
     uploadPhotos,
+    updateExtraField,
     requestFieldImprovement,
   };
 }

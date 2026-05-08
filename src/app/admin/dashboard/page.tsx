@@ -84,6 +84,7 @@ export default function DashboardPage() {
     newFieldKey, setNewFieldKey,
     newFieldLabel, setNewFieldLabel,
     newFieldQuestion, setNewFieldQuestion,
+    newFieldPlaceholder, setNewFieldPlaceholder,
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
@@ -93,6 +94,7 @@ export default function DashboardPage() {
     editingFieldIdx,
     editFieldLabel, setEditFieldLabel,
     editFieldQuestion, setEditFieldQuestion,
+    editFieldPlaceholder, setEditFieldPlaceholder,
     saveMessages, saveFields,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
@@ -594,6 +596,11 @@ export default function DashboardPage() {
                       <Table.Td>
                         <Stack gap={2}>
                           <Text size="sm" fw={500}>{field.label}</Text>
+                          <Text size="xs" c="dimmed">
+                            {field.source === 'admin'
+                              ? `Placeholder: ${field.placeholder || field.question || 'Sin placeholder'}`
+                              : `Pregunta: ${field.question || 'Sin pregunta'}`}
+                          </Text>
                           {field.type === 'list' && field.options && field.options.length > 0 && (
                             <Text size="xs" c="dimmed">{field.options.join(', ')}</Text>
                           )}
@@ -712,10 +719,13 @@ export default function DashboardPage() {
             onChange={(e) => setNewFieldLabel(e.currentTarget.value)}
           />
           <TextInput
-            label="Pregunta (pregunta del bot)"
-            placeholder="ej: ¿Cuál es el número de serie del equipo?"
-            value={newFieldQuestion}
-            onChange={(e) => setNewFieldQuestion(e.currentTarget.value)}
+            label={newFieldSource === 'admin' ? 'Placeholder (ejemplo para el admin)' : 'Pregunta (pregunta del bot)'}
+            placeholder={newFieldSource === 'admin' ? 'ej: Ingrese el número de serie del equipo' : 'ej: ¿Cuál es el número de serie del equipo?'}
+            value={newFieldSource === 'admin' ? newFieldPlaceholder : newFieldQuestion}
+            onChange={(e) => {
+              if (newFieldSource === 'admin') setNewFieldPlaceholder(e.currentTarget.value);
+              else setNewFieldQuestion(e.currentTarget.value);
+            }}
           />
           <Select
             label="Tipo de dato"
@@ -791,7 +801,7 @@ export default function DashboardPage() {
               disabled={
                 !newFieldKey.trim() ||
                 !newFieldLabel.trim() ||
-                !newFieldQuestion.trim() ||
+                  (newFieldSource === 'admin' ? !newFieldPlaceholder.trim() : !newFieldQuestion.trim()) ||
                 (newFieldType === 'list' && newFieldOptions.length === 0)
               }
             >
@@ -838,17 +848,38 @@ export default function DashboardPage() {
             value={editFieldLabel}
             onChange={(e) => setEditFieldLabel(e.currentTarget.value)}
           />
-          <Textarea
-            label="Pregunta (para bot)"
-            placeholder="Pregunta del bot"
-            value={editFieldQuestion}
-            onChange={(e) => setEditFieldQuestion(e.currentTarget.value)}
-            autosize
-            minRows={2}
-          />
+          {editingFieldIdx !== null && configFields[editingFieldIdx]?.source === 'admin' ? (
+            <Textarea
+              label="Placeholder (ejemplo para el admin)"
+              placeholder="Ej: Ingrese el número de serie del equipo"
+              value={editFieldPlaceholder}
+              onChange={(e) => setEditFieldPlaceholder(e.currentTarget.value)}
+              autosize
+              minRows={2}
+            />
+          ) : (
+            <Textarea
+              label="Pregunta (para bot)"
+              placeholder="Pregunta del bot"
+              value={editFieldQuestion}
+              onChange={(e) => setEditFieldQuestion(e.currentTarget.value)}
+              autosize
+              minRows={2}
+            />
+          )}
           <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={cancelEditField}>Cancelar</Button>
-            <Button onClick={saveEditField} disabled={!editFieldLabel.trim() || !editFieldQuestion.trim()}>Guardar</Button>
+            <Button
+              onClick={saveEditField}
+              disabled={
+                !editFieldLabel.trim() ||
+                (editingFieldIdx !== null && configFields[editingFieldIdx]?.source === 'admin'
+                  ? !editFieldPlaceholder.trim()
+                  : !editFieldQuestion.trim())
+              }
+            >
+              Guardar
+            </Button>
           </Group>
         </Stack>
       </Modal>
