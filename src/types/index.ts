@@ -46,6 +46,7 @@ export type FieldSource = 'bot' | 'admin' | 'auto';
 export interface BotMessages {
   menu: string;
   ticketCreated: string;
+  ticketDeleted: string;
   statusChanged: string;
   reparadoMessage: string;
   noTickets: string;

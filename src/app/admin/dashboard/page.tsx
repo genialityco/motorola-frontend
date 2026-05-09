@@ -723,13 +723,31 @@ export default function DashboardPage() {
                     <Divider />
                     <Stack gap={4}>
                       <Group gap="xs" align="center">
-                        <Text size="sm" fw={600}>Ticket creado exitosamente</Text>
+                        <Text size="sm" fw={600}>Ticket creado / editado</Text>
                         <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{action}'}</Badge>
                       </Group>
+                      <Text size="xs" c="dimmed">
+                        {'{action}'} se reemplaza por "creado" al crear un ticket, o "editado" al actualizar un campo.
+                      </Text>
+                      {ticketVarChips}
                       <Textarea
                         value={configMessages.ticketCreated}
                         onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, ticketCreated: v })); }}
                         onFocus={trackFocus('ticketCreated')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Group gap="xs" align="center">
+                        <Text size="sm" fw={600}>Ticket eliminado</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                      </Group>
+                      {ticketVarChips}
+                      <Textarea
+                        value={configMessages.ticketDeleted}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, ticketDeleted: v })); }}
+                        onFocus={trackFocus('ticketDeleted')}
                         autosize minRows={2}
                       />
                     </Stack>
