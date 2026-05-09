@@ -283,6 +283,7 @@ export default function TicketDetailPage() {
   if (!ticket) return <Loader color="blue" type="bars" mt="xl" />;
 
   const extraFields = ticket.extraFields || {};
+  const isTicketClosed = ticket.status === 'ARCHIVADO' || ticket.status === 'FINALIZADO';
 
   return (
     <Paper p="lg" shadow="sm" radius="md" withBorder>
@@ -365,13 +366,17 @@ export default function TicketDetailPage() {
                 <Text fw={700} size="sm" style={{ whiteSpace: "nowrap" }}>{field.label}:</Text>
                 <Text style={{ wordBreak: "break-word" }}>{displayValue}</Text>
               </Group>
-              <Tooltip label="Solicitar actualización al usuario" withArrow>
+              <Tooltip
+                label={isTicketClosed ? "No se pueden enviar mensajes en tickets Archivados o Finalizados" : "Solicitar actualización al usuario"}
+                withArrow
+              >
                 <ActionIcon
                   variant="filled"
                   color="orange"
                   size="sm"
                   style={{ flexShrink: 0 }}
-                  onClick={() => setRequestModal({ fieldKey: field.key, fieldLabel: field.label })}
+                  disabled={isTicketClosed}
+                  onClick={() => !isTicketClosed && setRequestModal({ fieldKey: field.key, fieldLabel: field.label })}
                 >
                   ✎
                 </ActionIcon>
