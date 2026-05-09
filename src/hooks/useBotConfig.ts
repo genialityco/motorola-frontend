@@ -3,6 +3,7 @@ import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { BotMessages, BotField, FieldType, FieldSource, SystemFieldConfig } from '@/types';
 import { configService } from '@/services/config.service';
+import { useAppToast } from '@/components/toast-provider';
 
 const DEFAULT_BOT_MESSAGES: BotMessages = {
   menu: 'Hola, a continuación te mostraré las diferentes funcionalidades que poseo:\n1. Para crear un ticket presiona 1\n2. Para ver el estado de tus tickets presiona 2\n3. Para editar un ticket presiona 3\n4. Para eliminar un ticket presiona 4\n5. Para finalizar un ticket presiona 5',
@@ -14,6 +15,11 @@ const DEFAULT_BOT_MESSAGES: BotMessages = {
   cancelled: 'Operación cancelada.',
   goodbye: 'Hasta luego 👋. Escribe cualquier mensaje para volver al menú.',
   viewTicketOptions: '¿Qué deseas ver?\n1. Info del ticket\n2. Ver fotos',
+  backToMenuKeyword: 'INICIO',
+  adminRequestUpdate:
+    '📋 El administrador te solicita actualizar el campo *{fieldLabel}* de tu ticket *{ticketNumber}*.\n\nPara actualizar esta información, selecciona la opción *3* (Editar) en el menú.',
+  ticketSelectPrompt: 'Selecciona el número del ticket que deseas *{action}*:',
+  ticketListItemTemplate: '{index}. 📋 *{ticketNumber}*\n   Estado: {estado}\n   Fecha: {fecha}',
 };
 
 const DEFAULT_BOT_FIELDS: BotField[] = [
@@ -34,6 +40,7 @@ const SYSTEM_FIELDS_DEFAULT: SystemFieldConfig[] = [
 ];
 
 export function useBotConfig() {
+  const { showToast } = useAppToast();
   const [configMessages, setConfigMessages] = useState<BotMessages>(DEFAULT_BOT_MESSAGES);
   const [configFields, setConfigFields] = useState<BotField[]>(DEFAULT_BOT_FIELDS);
   const [systemFields, setSystemFields] = useState<SystemFieldConfig[]>(SYSTEM_FIELDS_DEFAULT);
@@ -109,8 +116,10 @@ export function useBotConfig() {
     setSavingMessages(true);
     try {
       await configService.saveMessages(configMessages);
+      showToast({ type: 'success', title: 'Mensajes guardados', message: 'Los mensajes del bot se actualizaron correctamente.' });
     } catch (e) {
       console.error('Error guardando mensajes:', e);
+      showToast({ type: 'error', title: 'Error al guardar', message: 'No se pudieron guardar los mensajes. Intenta de nuevo.' });
     } finally {
       setSavingMessages(false);
     }
@@ -123,8 +132,10 @@ export function useBotConfig() {
         configFields.map((f, i) => ({ ...f, order: i })),
         systemFields,
       );
+      showToast({ type: 'success', title: 'Campos guardados', message: 'Los campos del ticket se actualizaron correctamente.' });
     } catch (e) {
       console.error('Error guardando campos:', e);
+      showToast({ type: 'error', title: 'Error al guardar', message: 'No se pudieron guardar los campos. Intenta de nuevo.' });
     } finally {
       setSavingFields(false);
     }

@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from 'react';
-import { Ticket, BotField, FieldType, FieldSource, SystemFieldConfig } from '@/types';
+import { useMemo, useState, useRef } from 'react';
+import { Ticket, BotField, BotMessages, FieldType, FieldSource, SystemFieldConfig } from '@/types';
 import {
   Table, Badge, Group, Title, Paper, Button,
   Popover, Checkbox, Text, Stack, Select,
@@ -41,17 +41,6 @@ const TYPE_COLORS: Record<FieldType, string> = {
 };
 const SOURCE_LABELS: Record<string, string> = { bot: 'Chat (Bot)', admin: 'Panel Admin', auto: 'Automático' };
 const SOURCE_COLORS: Record<string, string> = { bot: 'teal', admin: 'indigo', auto: 'gray' };
-const MESSAGE_META = [
-  { key: 'menu' as const, label: 'Menú principal del bot' },
-  { key: 'ticketCreated' as const, label: 'Ticket creado exitosamente', hint: '{ticketNumber}' },
-  { key: 'statusChanged' as const, label: 'Cambio de estado', hint: '{ticketNumber}, {prevStatus}, {newStatus}' },
-  { key: 'reparadoMessage' as const, label: 'Ticket reparado (con fotos de reparación)', hint: '{ticketNumber}, {description}' },
-  { key: 'noTickets' as const, label: 'Sin tickets registrados' },
-  { key: 'invalidField' as const, label: 'Campo inválido (respuesta vacía)' },
-  { key: 'cancelled' as const, label: 'Operación cancelada' },
-  { key: 'goodbye' as const, label: 'Despedida' },
-  { key: 'viewTicketOptions' as const, label: 'Opciones de ver ticket' },
-];
 const STATUS_COLORS: Record<string, string> = {
   REPORTADO: 'red', REVISION: 'blue', EN_REPARACION: 'yellow',
   REPARADO: 'teal', ENTREGADO: 'green', FINALIZADO: 'green', ARCHIVADO: 'gray',
@@ -126,6 +115,7 @@ export default function DashboardPage() {
 
   // ── Local UI state ───────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState<string | null>('tickets');
+  const [msgFlowTab, setMsgFlowTab] = useState<string | null>('menu');
   const [ticketSubTab, setTicketSubTab] = useState<string | null>('activos');
   const [sortCol, setSortCol] = useState<SortCol>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -249,6 +239,89 @@ export default function DashboardPage() {
     if (sortCol !== col) return <IconArrowsSort size={13} opacity={0.35} />;
     return sortDir === 'asc' ? <IconArrowUp size={13} /> : <IconArrowDown size={13} />;
   }
+
+  // Ref que apunta al último textarea enfocado y a su clave en configMessages
+  const activeTextareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const activeTextareaKeyRef = useRef<keyof BotMessages | null>(null);
+
+  const trackFocus = (key: keyof BotMessages) =>
+    (e: React.FocusEvent<HTMLTextAreaElement>) => {
+      activeTextareaRef.current = e.target;
+      activeTextareaKeyRef.current = key;
+    };
+
+  // Inserta la variable en la posición del cursor del textarea activo
+  const insertVar = (varStr: string) => {
+    const ta = activeTextareaRef.current;
+    const key = activeTextareaKeyRef.current;
+    if (!ta || !key) return;
+    const start = ta.selectionStart ?? ta.value.length;
+    const end = ta.selectionEnd ?? ta.value.length;
+    const newValue = ta.value.slice(0, start) + varStr + ta.value.slice(end);
+    setConfigMessages(prev => ({ ...prev, [key]: newValue }));
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.setSelectionRange(start + varStr.length, start + varStr.length);
+    });
+  };
+
+  const textTicketFields = configFields.filter(f => f.type !== 'photo' && f.type !== 'video');
+
+  // Botones de variables del sistema para el template del item de ticket
+  const TICKET_SYSTEM_VARS: { key: string; label: string }[] = [
+    { key: 'index', label: 'Nº' },
+    { key: 'ticketNumber', label: 'Nº Ticket' },
+    { key: 'estado', label: 'Estado' },
+    { key: 'fecha', label: 'Fecha' },
+  ];
+
+  const renderVarButtons = (vars: { key: string; label: string }[], color: string) =>
+    vars.map(({ key, label }) => {
+      const varStr = `{${key}}`;
+      return (
+        <Tooltip key={key} label={varStr} withArrow>
+          <Button
+            size="xs"
+            variant="light"
+            color={color}
+            onClick={() => insertVar(varStr)}
+          >
+            {label}
+          </Button>
+        </Tooltip>
+      );
+    });
+
+  // Panel de variables para usar en los tabs de mensajes admin / estados
+  const ticketVarChips = (
+    <Stack gap={4} mb="md" p="sm" style={{ background: 'var(--mantine-color-blue-0)', borderRadius: 6, border: '1px solid var(--mantine-color-blue-2)' }}>
+      <Text size="xs" fw={700} c="blue.7">Variables del ticket — haz clic en una variable para insertarla donde está el cursor:</Text>
+      <Group gap={4}>
+        {renderVarButtons(
+          textTicketFields.map(f => ({
+            key: f.key.split('.').pop() || f.key,
+            label: f.label,
+          })),
+          'blue',
+        )}
+      </Group>
+    </Stack>
+  );
+
+  // Preview en vivo usando el template configurado con valores de ejemplo
+  const sampleTicketVars: Record<string, string> = {
+    index: '1',
+    ticketNumber: 'TKT-00000',
+    estado: 'REPORTADO',
+    fecha: '8/5/2026',
+    ...textTicketFields.reduce<Record<string, string>>((acc, f) => {
+      const leafKey = f.key.split('.').pop() || f.key;
+      acc[leafKey] = `[${f.label}]`;
+      return acc;
+    }, {}),
+  };
+  const ticketListPreview = 'Tus tickets:\n\n' +
+    configMessages.ticketListItemTemplate.replace(/\{(\w+)\}/g, (_, k) => sampleTicketVars[k] ?? `{${k}}`);
 
   return (
     <Paper p="md" shadow="sm" radius="md" withBorder>
@@ -521,24 +594,236 @@ export default function DashboardPage() {
 
             <Tabs.Panel value="messages">
               <Text size="sm" c="dimmed" mb="md">
-                Edita el texto que el bot envía en cada situación. Las variables en {'{llaves}'} se reemplazan automáticamente.
+                Organiza los mensajes del bot por flujo. Las variables en {'{llaves}'} se reemplazan automáticamente.
               </Text>
-              <Stack gap="md" mb="lg">
-                {MESSAGE_META.map(({ key, label, hint }) => (
-                  <Stack key={key} gap={4}>
-                    <Group gap="xs" align="center">
-                      <Text size="sm" fw={600}>{label}</Text>
-                      {hint && <Badge size="xs" variant="outline" color="gray">{hint}</Badge>}
-                    </Group>
-                    <Textarea
-                      value={configMessages[key]}
-                      onChange={(e) => setConfigMessages((prev) => ({ ...prev, [key]: e.currentTarget.value }))}
-                      autosize
-                      minRows={2}
-                    />
+              <Tabs value={msgFlowTab} onChange={setMsgFlowTab} variant="pills">
+                <Tabs.List mb="md">
+                  <Tabs.Tab value="menu">Menú</Tabs.Tab>
+                  <Tabs.Tab value="ver">Ver Tickets</Tabs.Tab>
+                  <Tabs.Tab value="acciones">Crear / Editar / Eliminar</Tabs.Tab>
+                  <Tabs.Tab value="admin">Mensajes Admin</Tabs.Tab>
+                  <Tabs.Tab value="estados">Cambios de Estado</Tabs.Tab>
+                </Tabs.List>
+
+                {/* ── Menú ── */}
+                <Tabs.Panel value="menu">
+                  <Stack gap="md" mb="lg">
+                    <Stack gap={4}>
+                      <Group gap="xs" align="center">
+                        <Text size="sm" fw={600}>Palabra para volver al menú</Text>
+                        <Badge size="xs" variant="outline" color="blue">En mayúsculas</Badge>
+                      </Group>
+                      <Text size="xs" c="dimmed">
+                        El usuario escribe esta palabra en cualquier flujo para volver al menú principal.
+                      </Text>
+                      <TextInput
+                        value={configMessages.backToMenuKeyword}
+                        onChange={(e) => { const v = e.target.value.toUpperCase(); setConfigMessages((prev) => ({ ...prev, backToMenuKeyword: v })); }}
+                        placeholder="INICIO"
+                        style={{ maxWidth: 200 }}
+                      />
+                    </Stack>
+                    <Divider />
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Mensaje del menú principal</Text>
+                      <Textarea
+                        value={configMessages.menu}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, menu: v })); }}
+                        onFocus={trackFocus('menu')}
+                        autosize minRows={3}
+                      />
+                    </Stack>
                   </Stack>
-                ))}
-              </Stack>
+                </Tabs.Panel>
+
+                {/* ── Ver Tickets ── */}
+                <Tabs.Panel value="ver">
+                  <Stack gap="md" mb="lg">
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Plantilla de cada ticket en el listado</Text>
+                      <Text size="xs" c="dimmed">
+                        Usa las variables de abajo para personalizar cómo aparece cada ticket.
+                      </Text>
+                      <Stack gap={4} p="sm" style={{ background: 'var(--mantine-color-blue-0)', borderRadius: 6, border: '1px solid var(--mantine-color-blue-2)' }}>
+                        <Text size="xs" fw={700} c="blue.7">Variables del sistema — haz clic para insertar en el cursor:</Text>
+                        <Group gap={4}>
+                          {renderVarButtons(TICKET_SYSTEM_VARS, 'teal')}
+                        </Group>
+                        <Text size="xs" fw={700} c="blue.7">Campos del ticket:</Text>
+                        <Group gap={4}>
+                          {renderVarButtons(
+                            textTicketFields.map(f => ({ key: f.key.split('.').pop() || f.key, label: f.label })),
+                            'blue',
+                          )}
+                        </Group>
+                      </Stack>
+                      <Textarea
+                        value={configMessages.ticketListItemTemplate}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, ticketListItemTemplate: v })); }}
+                        onFocus={trackFocus('ticketListItemTemplate')}
+                        autosize minRows={3}
+                        description="Plantilla para cada ítem de la lista de tickets"
+                      />
+                    </Stack>
+                    <Stack gap={4} c={"dark"}>
+                      <Text size="sm" fw={600}>Vista previa</Text>
+                      <Text
+                        component="pre"
+                        size="xs"
+                        p="sm"
+                        style={{ background: 'var(--mantine-color-gray-0)', border: '1px solid var(--mantine-color-gray-3)', borderRadius: 6, margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+                      >
+                        {ticketListPreview}
+                      </Text>
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Mensaje: sin tickets registrados</Text>
+                      <Textarea
+                        value={configMessages.noTickets}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, noTickets: v })); }}
+                        onFocus={trackFocus('noTickets')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                  </Stack>
+                </Tabs.Panel>
+
+                {/* ── Crear / Editar / Eliminar ── */}
+                <Tabs.Panel value="acciones">
+                  <Stack gap="md" mb="lg" c={"dark"}>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Vista previa — lista con selección</Text>
+                      <Text size="xs" c="dimmed">
+                        Formato mostrado en las opciones 3 (editar), 4 (eliminar) y 5 (finalizar).
+                      </Text>
+                      <Text
+                        component="pre"
+                        size="xs"
+                        p="sm"
+                        style={{ background: 'var(--mantine-color-gray-0)', border: '1px solid var(--mantine-color-gray-3)', borderRadius: 6, margin: 0, whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}
+                      >
+                        {ticketListPreview + '\n\n' + configMessages.ticketSelectPrompt.replace('{action}', '(acción)')}
+                      </Text>
+                    </Stack>
+                    <Stack gap={4}>
+                      <Group gap="xs" align="center">
+                        <Text size="sm" fw={600}>Mensaje de selección de ticket</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{action}'}</Badge>
+                      </Group>
+                      <Text size="xs" c="dimmed">
+                        {'{action}'} se reemplaza por "editar", "eliminar" o "finalizar" según la opción elegida.
+                      </Text>
+                      <Textarea
+                        value={configMessages.ticketSelectPrompt}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, ticketSelectPrompt: v })); }}
+                        onFocus={trackFocus('ticketSelectPrompt')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Divider />
+                    <Stack gap={4}>
+                      <Group gap="xs" align="center">
+                        <Text size="sm" fw={600}>Ticket creado exitosamente</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                      </Group>
+                      <Textarea
+                        value={configMessages.ticketCreated}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, ticketCreated: v })); }}
+                        onFocus={trackFocus('ticketCreated')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Campo inválido (respuesta vacía)</Text>
+                      <Textarea
+                        value={configMessages.invalidField}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, invalidField: v })); }}
+                        onFocus={trackFocus('invalidField')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Operación cancelada</Text>
+                      <Textarea
+                        value={configMessages.cancelled}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, cancelled: v })); }}
+                        onFocus={trackFocus('cancelled')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Despedida</Text>
+                      <Textarea
+                        value={configMessages.goodbye}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, goodbye: v })); }}
+                        onFocus={trackFocus('goodbye')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                  </Stack>
+                </Tabs.Panel>
+
+                {/* ── Mensajes Admin ── */}
+                <Tabs.Panel value="admin">
+                  {ticketVarChips}
+                  <Stack gap="md" mb="lg">
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Solicitud de actualización de campo (admin → usuario)</Text>
+                      <Text size="xs" c="dimmed">
+                        Se envía cuando el admin solicita al usuario actualizar un campo del ticket.
+                      </Text>
+                      <Group gap={4}>
+                        <Text size="xs" c="dimmed">Variables fijas:</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{fieldLabel}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                        <Text size="xs" c="dimmed">+ variables del ticket de arriba.</Text>
+                      </Group>
+                      <Textarea
+                        value={configMessages.adminRequestUpdate}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, adminRequestUpdate: v })); }}
+                        onFocus={trackFocus('adminRequestUpdate')}
+                        autosize minRows={3}
+                      />
+                    </Stack>
+                  </Stack>
+                </Tabs.Panel>
+
+                {/* ── Cambios de Estado ── */}
+                <Tabs.Panel value="estados">
+                  {ticketVarChips}
+                  <Stack gap="md" mb="lg">
+                    <Stack gap={4}>
+                      <Group gap="xs" align="center">
+                        <Text size="sm" fw={600}>Cambio de estado</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{prevStatus}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{newStatus}'}</Badge>
+                      </Group>
+                      <Text size="xs" c="dimmed">+ Variables del ticket de arriba.</Text>
+                      <Textarea
+                        value={configMessages.statusChanged}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, statusChanged: v })); }}
+                        onFocus={trackFocus('statusChanged')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Group gap="xs" align="center">
+                        <Text size="sm" fw={600}>Ticket reparado (con fotos de reparación)</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{description}'}</Badge>
+                      </Group>
+                      <Text size="xs" c="dimmed">+ Variables del ticket de arriba.</Text>
+                      <Textarea
+                        value={configMessages.reparadoMessage}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, reparadoMessage: v })); }}
+                        onFocus={trackFocus('reparadoMessage')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                  </Stack>
+                </Tabs.Panel>
+              </Tabs>
               <Button onClick={saveMessages} loading={savingMessages}>Guardar mensajes</Button>
             </Tabs.Panel>
 

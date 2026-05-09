@@ -53,6 +53,10 @@ export interface BotMessages {
   cancelled: string;
   goodbye: string;
   viewTicketOptions: string;
+  backToMenuKeyword: string;
+  adminRequestUpdate: string;
+  ticketSelectPrompt: string;
+  ticketListItemTemplate: string;
 }
 
 export interface BotField {
