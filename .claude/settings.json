@@ -6,7 +6,11 @@
       "Bash(curl -s http://localhost:3001/api/config/messages)",
       "Bash(curl -s -X PATCH http://localhost:3001/api/config/messages -H \"Content-Type: application/json\" -d \"{}\")",
       "Bash(cd /c/Users/sebas/Documents/GitHub/motorola-backend && find . -type f -name \"*.js\" -o -name \"*.ts\" | head -50)",
-      "Read(//c/c/Users/sebas/Documents/GitHub/**)"
+      "Read(//c/c/Users/sebas/Documents/GitHub/**)",
+      "Bash(Get-ChildItem -Recurse -Path \"c:\\\\Users\\\\sebas\\\\Documents\\\\GitHub\\\\motorola-backend\\\\src\" -Filter \"*.ts\")",
+      "Bash(Get-ChildItem -Recurse -Path \"c:\\\\Users\\\\sebas\\\\Documents\\\\GitHub\\\\motorola-frontend\\\\src\" -Filter \"*.tsx\")",
+      "Bash(node -e \"require\\('xlsx'\\); console.log\\('ok'\\)\")",
+      "Bash(npm install *)"
     ]
   }
 }

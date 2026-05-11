@@ -16,6 +16,7 @@ import * as XLSX from 'xlsx';
 import { useTickets } from '@/hooks/useTickets';
 import { useBotConfig } from '@/hooks/useBotConfig';
 import { useHosts } from '@/hooks/useHosts';
+import { ImportTicketsModal } from '@/components/ImportTicketsModal';
 
 // ── Display constants ──────────────────────────────────────────────────────────
 type SortCol = string;
@@ -124,6 +125,7 @@ export default function DashboardPage() {
   const [filterFechaFrom, setFilterFechaFrom] = useState('');
   const [filterFechaTo, setFilterFechaTo] = useState('');
   const [dateModalOpen, setDateModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState('10');
 
@@ -336,9 +338,14 @@ export default function DashboardPage() {
         <Tabs.Panel value="tickets">
           <Group justify="space-between" mb="md">
             <Title order={2}>Gestor de Tickets</Title>
-            <Button onClick={exportToExcel} variant="light" color="green">
-              Exportar a Excel
-            </Button>
+            <Group gap="xs">
+              <Button onClick={() => setImportModalOpen(true)} variant="light" color="blue">
+                Importar Tickets
+              </Button>
+              <Button onClick={exportToExcel} variant="light" color="green">
+                Exportar Tickets
+              </Button>
+            </Group>
           </Group>
 
           <Tabs value={ticketSubTab} onChange={(v) => { setTicketSubTab(v); setPage(1); }} mb="lg">
@@ -1243,6 +1250,13 @@ export default function DashboardPage() {
           </Group>
         </Stack>
       </Modal>
+
+      {/* ── Modal: Importar tickets ────────────────────────────────────────── */}
+      <ImportTicketsModal
+        opened={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        configFields={configFields}
+      />
     </Paper>
   );
 }
