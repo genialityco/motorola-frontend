@@ -1,4 +1,4 @@
-import { BotMessages, BotField, SystemFieldConfig } from '@/types';
+import { BotMessages, BotSettings, BotField, SystemFieldConfig } from '@/types';
 import { apiClient } from './api.client';
 
 export const configService = {
@@ -7,4 +7,7 @@ export const configService = {
 
   saveFields: (fields: BotField[], systemFields?: SystemFieldConfig[]) =>
     apiClient.patch('/api/config/fields', { fields, ...(systemFields ? { systemFields } : {}) }),
+
+  saveSettings: (settings: BotSettings) =>
+    apiClient.patch('/api/config/settings', settings),
 };

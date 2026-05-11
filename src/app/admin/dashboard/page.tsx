@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState, useRef } from 'react';
-import { Ticket, BotField, BotMessages, FieldType, FieldSource, SystemFieldConfig } from '@/types';
+import { Ticket, BotField, BotMessages, BotSettings, FieldType, FieldSource, SystemFieldConfig } from '@/types';
 import {
   Table, Badge, Group, Title, Paper, Button,
   Popover, Checkbox, Text, Stack, Select,
-  Modal, TextInput, ActionIcon, Tooltip, Pagination, Tabs,
+  Modal, TextInput, NumberInput, ActionIcon, Tooltip, Pagination, Tabs,
   Textarea, Switch, Divider,
 } from '@mantine/core';
 import {
@@ -79,7 +79,8 @@ export default function DashboardPage() {
     configMessages, setConfigMessages,
     configFields, setConfigFields,
     systemFields, setSystemFields,
-    savingMessages, savingFields,
+    configSettings, setConfigSettings,
+    savingMessages, savingFields, savingSettings,
     infoTab, setInfoTab,
     addFieldOpen, setAddFieldOpen,
     newFieldKey, setNewFieldKey,
@@ -96,7 +97,7 @@ export default function DashboardPage() {
     editFieldLabel, setEditFieldLabel,
     editFieldQuestion, setEditFieldQuestion,
     editFieldPlaceholder, setEditFieldPlaceholder,
-    saveMessages, saveFields,
+    saveMessages, saveFields, saveSettings,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
     addField, addListOption, removeListOption,
@@ -640,6 +641,64 @@ export default function DashboardPage() {
                         autosize minRows={3}
                       />
                     </Stack>
+
+                    <Divider my="xs" label="Expiración de sesión por inactividad" labelPosition="center" />
+
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Horas de inactividad para expirar sesión</Text>
+                      <Text size="xs" c="dimmed">
+                        Si el usuario deja de responder durante este tiempo en medio de un flujo (crear o editar), la sesión se reinicia automáticamente.
+                      </Text>
+                      <NumberInput
+                        value={configSettings.sessionTimeoutHours}
+                        onChange={(v) => setConfigSettings((prev: BotSettings) => ({ ...prev, sessionTimeoutHours: Number(v) || 24 }))}
+                        min={1} max={168} step={1} suffix=" horas"
+                        w={160}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Mensaje al expirar sesión de creación</Text>
+                      <Text size="xs" c="dimmed">Se envía cuando el usuario dejó un ticket a medio crear.</Text>
+                      <Group gap={4}>
+                        <Badge size="xs" variant="outline" color="gray">{'{hours}'}</Badge>
+                      </Group>
+                      <Textarea
+                        value={configMessages.sessionExpiredCreate}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, sessionExpiredCreate: v })); }}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Mensaje al expirar sesión de edición</Text>
+                      <Text size="xs" c="dimmed">Se envía cuando el usuario dejó un ticket a medio editar.</Text>
+                      <Group gap={4}>
+                        <Badge size="xs" variant="outline" color="gray">{'{hours}'}</Badge>
+                      </Group>
+                      <Textarea
+                        value={configMessages.sessionExpiredEdit}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, sessionExpiredEdit: v })); }}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Mensaje al expirar sesión (genérico)</Text>
+                      <Text size="xs" c="dimmed">Se envía cuando el usuario estaba en otro estado intermedio.</Text>
+                      <Group gap={4}>
+                        <Badge size="xs" variant="outline" color="gray">{'{hours}'}</Badge>
+                      </Group>
+                      <Textarea
+                        value={configMessages.sessionExpiredGeneric}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, sessionExpiredGeneric: v })); }}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Button
+                      onClick={async () => { await saveSettings(); await saveMessages(); }}
+                      loading={savingSettings || savingMessages}
+                      size="sm" w="fit-content"
+                    >
+                      Guardar expiración de sesión
+                    </Button>
                   </Stack>
                 </Tabs.Panel>
 
@@ -845,6 +904,7 @@ export default function DashboardPage() {
                         autosize minRows={3}
                       />
                     </Stack>
+
                   </Stack>
                 </Tabs.Panel>
 

@@ -60,6 +60,13 @@ export interface BotMessages {
   editFieldPrompt: string;
   ticketSelectPrompt: string;
   ticketListItemTemplate: string;
+  sessionExpiredCreate: string;
+  sessionExpiredEdit: string;
+  sessionExpiredGeneric: string;
+}
+
+export interface BotSettings {
+  sessionTimeoutHours: number;
 }
 
 export interface BotField {

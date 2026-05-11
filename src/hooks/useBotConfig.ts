@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { BotMessages, BotField, FieldType, FieldSource, SystemFieldConfig } from '@/types';
+import { BotMessages, BotSettings, BotField, FieldType, FieldSource, SystemFieldConfig } from '@/types';
 import { configService } from '@/services/config.service';
 import { useAppToast } from '@/components/toast-provider';
 
@@ -17,13 +17,18 @@ const DEFAULT_BOT_MESSAGES: BotMessages = {
   goodbye: 'Hasta luego 👋. Escribe cualquier mensaje para volver al menú.',
   viewTicketOptions: '¿Qué deseas ver?\n1. Info del ticket\n2. Ver fotos',
   backToMenuKeyword: 'INICIO',
-  adminRequestUpdate:
-    '📋 El administrador te solicita actualizar el campo *{fieldLabel}* de tu ticket *{ticketNumber}*.\n\nPara actualizar esta información, selecciona la opción *3* (Editar) en el menú.',
-  deletePhotoRequest:
-    'Para el ticket número *{ticketNumber}* vuelva adjuntar las evidencias del campo {fieldLabel}.',
-  editFieldPrompt: '¿Qué deseas editar en el ticket *{ticketNumber}*?\n\n{fieldList}\n0. Cancelar',
+  adminRequestUpdate: '📋 El administrador te solicita actualizar el campo *{fieldLabel}* de tu ticket *{ticketNumber}*.\n\nPara actualizar esta información, selecciona la opción *3* (Editar) en el menú.',
   ticketSelectPrompt: 'Selecciona el número del ticket que deseas *{action}*:',
   ticketListItemTemplate: '{index}. 📋 *{ticketNumber}*\n   Estado: {estado}\n   Fecha: {fecha}',
+  deletePhotoRequest: '',
+  editFieldPrompt: '',
+  sessionExpiredCreate: 'Tu sesión para crear el ticket expiró por inactividad ({hours} horas). Por favor, selecciona la opción *1* para comenzar nuevamente.',
+  sessionExpiredEdit: 'Tu sesión para editar el ticket expiró por inactividad ({hours} horas). Por favor, selecciona la opción *3* para editar nuevamente.',
+  sessionExpiredGeneric: 'Tu sesión expiró por inactividad ({hours} horas). Por favor, selecciona una opción del menú.',
+};
+
+const DEFAULT_BOT_SETTINGS: BotSettings = {
+  sessionTimeoutHours: 24,
 };
 
 const DEFAULT_BOT_FIELDS: BotField[] = [
@@ -48,8 +53,10 @@ export function useBotConfig() {
   const [configMessages, setConfigMessages] = useState<BotMessages>(DEFAULT_BOT_MESSAGES);
   const [configFields, setConfigFields] = useState<BotField[]>(DEFAULT_BOT_FIELDS);
   const [systemFields, setSystemFields] = useState<SystemFieldConfig[]>(SYSTEM_FIELDS_DEFAULT);
+  const [configSettings, setConfigSettings] = useState<BotSettings>(DEFAULT_BOT_SETTINGS);
   const [savingMessages, setSavingMessages] = useState(false);
   const [savingFields, setSavingFields] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [infoTab, setInfoTab] = useState<string | null>('messages');
 
   // Add field modal state
@@ -70,6 +77,19 @@ export function useBotConfig() {
   const [editFieldLabel, setEditFieldLabel] = useState('');
   const [editFieldQuestion, setEditFieldQuestion] = useState('');
   const [editFieldPlaceholder, setEditFieldPlaceholder] = useState('');
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      doc(db, 'bot_config', 'settings'),
+      (snap) => {
+        if (snap.exists()) {
+          setConfigSettings({ ...DEFAULT_BOT_SETTINGS, ...(snap.data() as Partial<BotSettings>) });
+        }
+      },
+      () => {},
+    );
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -115,6 +135,19 @@ export function useBotConfig() {
     );
     return () => unsub();
   }, []);
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await configService.saveSettings(configSettings);
+      showToast({ type: 'success', title: 'Configuración guardada', message: 'La configuración del bot se actualizó correctamente.' });
+    } catch (e) {
+      console.error('Error guardando configuración:', e);
+      showToast({ type: 'error', title: 'Error al guardar', message: 'No se pudo guardar la configuración. Intenta de nuevo.' });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const saveMessages = async () => {
     setSavingMessages(true);
@@ -245,7 +278,8 @@ export function useBotConfig() {
     configMessages, setConfigMessages,
     configFields, setConfigFields,
     systemFields, setSystemFields,
-    savingMessages, savingFields,
+    configSettings, setConfigSettings,
+    savingMessages, savingFields, savingSettings,
     infoTab, setInfoTab,
     addFieldOpen, setAddFieldOpen,
     newFieldKey, setNewFieldKey,
@@ -262,7 +296,7 @@ export function useBotConfig() {
     editFieldLabel, setEditFieldLabel,
     editFieldQuestion, setEditFieldQuestion,
     editFieldPlaceholder, setEditFieldPlaceholder,
-    saveMessages, saveFields,
+    saveMessages, saveFields, saveSettings,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
     addField, addListOption, removeListOption,
