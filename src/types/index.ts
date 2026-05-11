@@ -56,6 +56,8 @@ export interface BotMessages {
   viewTicketOptions: string;
   backToMenuKeyword: string;
   adminRequestUpdate: string;
+  deletePhotoRequest: string;
+  editFieldPrompt: string;
   ticketSelectPrompt: string;
   ticketListItemTemplate: string;
 }

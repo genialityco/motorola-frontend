@@ -810,6 +810,40 @@ export default function DashboardPage() {
                         autosize minRows={3}
                       />
                     </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Solicitud de re-adjuntar evidencias (admin elimina foto)</Text>
+                      <Text size="xs" c="dimmed">
+                        Se envía al usuario cuando el admin elimina una foto de un campo del ticket.
+                      </Text>
+                      <Group gap={4}>
+                        <Text size="xs" c="dimmed">Variables fijas:</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{fieldLabel}'}</Badge>
+                      </Group>
+                      <Textarea
+                        value={configMessages.deletePhotoRequest}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, deletePhotoRequest: v })); }}
+                        onFocus={trackFocus('deletePhotoRequest')}
+                        autosize minRows={2}
+                      />
+                    </Stack>
+                    <Stack gap={4}>
+                      <Text size="sm" fw={600}>Selección de campo a editar (bot → usuario)</Text>
+                      <Text size="xs" c="dimmed">
+                        Se envía cuando el usuario selecciona un ticket para editar y debe elegir qué campo modificar.
+                      </Text>
+                      <Group gap={4}>
+                        <Text size="xs" c="dimmed">Variables fijas:</Text>
+                        <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+                        <Badge size="xs" variant="outline" color="gray">{'{fieldList}'}</Badge>
+                      </Group>
+                      <Textarea
+                        value={configMessages.editFieldPrompt}
+                        onChange={(e) => { const v = e.target.value; setConfigMessages((prev) => ({ ...prev, editFieldPrompt: v })); }}
+                        onFocus={trackFocus('editFieldPrompt')}
+                        autosize minRows={3}
+                      />
+                    </Stack>
                   </Stack>
                 </Tabs.Panel>
 
