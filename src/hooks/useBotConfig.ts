@@ -70,6 +70,8 @@ export function useBotConfig() {
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState<string[]>([]);
   const [newFieldOptionInput, setNewFieldOptionInput] = useState('');
+  const [newFieldAllowOther, setNewFieldAllowOther] = useState(false);
+  const [newFieldOtherLabel, setNewFieldOtherLabel] = useState('');
 
   // Edit field modal state
   const [editFieldOpen, setEditFieldOpen] = useState(false);
@@ -77,6 +79,10 @@ export function useBotConfig() {
   const [editFieldLabel, setEditFieldLabel] = useState('');
   const [editFieldQuestion, setEditFieldQuestion] = useState('');
   const [editFieldPlaceholder, setEditFieldPlaceholder] = useState('');
+  const [editFieldOptions, setEditFieldOptions] = useState<string[]>([]);
+  const [editFieldOptionInput, setEditFieldOptionInput] = useState('');
+  const [editFieldAllowOther, setEditFieldAllowOther] = useState(false);
+  const [editFieldOtherLabel, setEditFieldOtherLabel] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -197,6 +203,10 @@ export function useBotConfig() {
     setEditFieldLabel(field.label);
     setEditFieldQuestion(field.question ?? '');
     setEditFieldPlaceholder(field.placeholder ?? '');
+    setEditFieldOptions(field.options ?? []);
+    setEditFieldOptionInput('');
+    setEditFieldAllowOther(field.allowOther ?? false);
+    setEditFieldOtherLabel(field.otherLabel ?? '');
     setEditFieldOpen(true);
   };
 
@@ -213,6 +223,11 @@ export function useBotConfig() {
       label: editFieldLabel.trim(),
       question: editFieldQuestion.trim(),
       placeholder: editFieldPlaceholder.trim(),
+      ...(currentField.type === 'list' ? {
+        options: editFieldOptions,
+        allowOther: editFieldAllowOther,
+        otherLabel: editFieldAllowOther ? editFieldOtherLabel.trim() : undefined,
+      } : {}),
     };
     setConfigFields(updated);
     setEditFieldOpen(false);
@@ -220,6 +235,10 @@ export function useBotConfig() {
     setEditFieldLabel('');
     setEditFieldQuestion('');
     setEditFieldPlaceholder('');
+    setEditFieldOptions([]);
+    setEditFieldOptionInput('');
+    setEditFieldAllowOther(false);
+    setEditFieldOtherLabel('');
   };
 
   const cancelEditField = () => {
@@ -228,6 +247,21 @@ export function useBotConfig() {
     setEditFieldLabel('');
     setEditFieldQuestion('');
     setEditFieldPlaceholder('');
+    setEditFieldOptions([]);
+    setEditFieldOptionInput('');
+    setEditFieldAllowOther(false);
+    setEditFieldOtherLabel('');
+  };
+
+  const addEditListOption = () => {
+    const opt = editFieldOptionInput.trim();
+    if (!opt || editFieldOptions.includes(opt)) return;
+    setEditFieldOptions((prev) => [...prev, opt]);
+    setEditFieldOptionInput('');
+  };
+
+  const removeEditListOption = (idx: number) => {
+    setEditFieldOptions((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const addListOption = () => {
@@ -259,7 +293,11 @@ export function useBotConfig() {
       required: newFieldRequired,
       visible: true,
       excel: newFieldType !== 'photo' && newFieldType !== 'video',
-      ...(newFieldType === 'list' ? { options: newFieldOptions } : {}),
+      ...(newFieldType === 'list' ? {
+        options: newFieldOptions,
+        allowOther: newFieldAllowOther,
+        otherLabel: newFieldAllowOther ? newFieldOtherLabel.trim() : undefined,
+      } : {}),
     };
     setConfigFields((prev) => [...prev, newField]);
     setNewFieldKey('');
@@ -271,6 +309,8 @@ export function useBotConfig() {
     setNewFieldRequired(false);
     setNewFieldOptions([]);
     setNewFieldOptionInput('');
+    setNewFieldAllowOther(false);
+    setNewFieldOtherLabel('');
     setAddFieldOpen(false);
   };
 
@@ -291,14 +331,21 @@ export function useBotConfig() {
     newFieldRequired, setNewFieldRequired,
     newFieldOptions, setNewFieldOptions,
     newFieldOptionInput, setNewFieldOptionInput,
+    newFieldAllowOther, setNewFieldAllowOther,
+    newFieldOtherLabel, setNewFieldOtherLabel,
     editFieldOpen,
     editingFieldIdx,
     editFieldLabel, setEditFieldLabel,
     editFieldQuestion, setEditFieldQuestion,
     editFieldPlaceholder, setEditFieldPlaceholder,
+    editFieldOptions, setEditFieldOptions,
+    editFieldOptionInput, setEditFieldOptionInput,
+    editFieldAllowOther, setEditFieldAllowOther,
+    editFieldOtherLabel, setEditFieldOtherLabel,
     saveMessages, saveFields, saveSettings,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
     addField, addListOption, removeListOption,
+    addEditListOption, removeEditListOption,
   };
 }

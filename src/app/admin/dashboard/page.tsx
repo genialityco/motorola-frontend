@@ -90,17 +90,24 @@ export default function DashboardPage() {
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
-    newFieldOptions,
+    newFieldOptions, setNewFieldOptions,
     newFieldOptionInput, setNewFieldOptionInput,
+    newFieldAllowOther, setNewFieldAllowOther,
+    newFieldOtherLabel, setNewFieldOtherLabel,
     editFieldOpen,
     editingFieldIdx,
     editFieldLabel, setEditFieldLabel,
     editFieldQuestion, setEditFieldQuestion,
     editFieldPlaceholder, setEditFieldPlaceholder,
+    editFieldOptions, setEditFieldOptions,
+    editFieldOptionInput, setEditFieldOptionInput,
+    editFieldAllowOther, setEditFieldAllowOther,
+    editFieldOtherLabel, setEditFieldOtherLabel,
     saveMessages, saveFields, saveSettings,
     moveField, deleteField,
     openEditField, saveEditField, cancelEditField,
     addField, addListOption, removeListOption,
+    addEditListOption, removeEditListOption,
   } = useBotConfig();
   const {
     hosts,
@@ -129,6 +136,12 @@ export default function DashboardPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState('10');
+  // Edición inline de opciones de lista (modal crear)
+  const [newOptEditIdx, setNewOptEditIdx] = useState<number | null>(null);
+  const [newOptEditValue, setNewOptEditValue] = useState('');
+  // Edición inline de opciones de lista (modal editar)
+  const [editOptEditIdx, setEditOptEditIdx] = useState<number | null>(null);
+  const [editOptEditValue, setEditOptEditValue] = useState('');
 
   // ── Computed ─────────────────────────────────────────────────────────────────
   const hostsMap = useMemo(() => {
@@ -1180,9 +1193,38 @@ export default function DashboardPage() {
                 <Stack gap={4}>
                   {newFieldOptions.map((opt, i) => (
                     <Group key={i} gap="xs" justify="space-between" p={6}
-                      style={{ background: 'var(--mantine-color-gray-0)', borderRadius: 4 }}>
-                      <Text size="xs">{opt}</Text>
-                      <ActionIcon size="xs" color="red" variant="subtle" onClick={() => removeListOption(i)}>
+                      style={{ background: 'var(--mantine-color-dark)', borderRadius: 4 }}>
+                      <Text size="xs" c="dimmed" fw={600} style={{ minWidth: 20 }}>{i + 1}.</Text>
+                      {newOptEditIdx === i ? (
+                        <TextInput
+                          size="xs"
+                          value={newOptEditValue}
+                          onChange={(e) => setNewOptEditValue(e.currentTarget.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && newOptEditValue.trim()) {
+                              setNewFieldOptions(prev => prev.map((o, j) => j === i ? newOptEditValue.trim() : o));
+                              setNewOptEditIdx(null);
+                            }
+                            if (e.key === 'Escape') setNewOptEditIdx(null);
+                          }}
+                          style={{ flex: 1 }}
+                          autoFocus
+                        />
+                      ) : (
+                        <Text size="xs" style={{ flex: 1 }}>{opt}</Text>
+                      )}
+                      {newOptEditIdx === i ? (
+                        <ActionIcon size="xs" color="green" variant="subtle"
+                          onClick={() => { if (newOptEditValue.trim()) { setNewFieldOptions(prev => prev.map((o, j) => j === i ? newOptEditValue.trim() : o)); setNewOptEditIdx(null); } }}>
+                          ✓
+                        </ActionIcon>
+                      ) : (
+                        <ActionIcon size="xs" color="blue" variant="subtle"
+                          onClick={() => { setNewOptEditIdx(i); setNewOptEditValue(opt); }}>
+                          ✎
+                        </ActionIcon>
+                      )}
+                      <ActionIcon size="xs" color="red" variant="subtle" onClick={() => { removeListOption(i); if (newOptEditIdx === i) setNewOptEditIdx(null); }}>
                         <IconTrash size={12} />
                       </ActionIcon>
                     </Group>
@@ -1190,6 +1232,22 @@ export default function DashboardPage() {
                 </Stack>
               ) : (
                 <Text size="xs" c="dimmed">Aún no hay opciones. Agrega al menos una.</Text>
+              )}
+              <Checkbox
+                label="Permitir opción OTRO"
+                size="xs"
+                checked={newFieldAllowOther}
+                onChange={(e) => setNewFieldAllowOther(e.currentTarget.checked)}
+              />
+              {newFieldAllowOther && (
+                <TextInput
+                  label="Mensaje para OTRO"
+                  description="Pregunta que el bot le hará al usuario cuando elija OTRO"
+                  placeholder="ej: Por favor describe tu respuesta"
+                  size="xs"
+                  value={newFieldOtherLabel}
+                  onChange={(e) => setNewFieldOtherLabel(e.currentTarget.value)}
+                />
               )}
             </Stack>
           )}
@@ -1283,6 +1341,87 @@ export default function DashboardPage() {
               minRows={2}
             />
           )}
+
+          {/* Edición de opciones — solo para campos tipo lista */}
+          {editingFieldIdx !== null && configFields[editingFieldIdx]?.type === 'list' && (
+            <Stack gap="xs">
+              <Text size="sm" fw={600}>Opciones de la lista</Text>
+              <Group gap="xs">
+                <TextInput
+                  placeholder="Nueva opción…"
+                  value={editFieldOptionInput}
+                  onChange={(e) => setEditFieldOptionInput(e.currentTarget.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addEditListOption(); } }}
+                  style={{ flex: 1 }}
+                  size="xs"
+                />
+                <Button size="xs" variant="light" onClick={addEditListOption} disabled={!editFieldOptionInput.trim()}>
+                  Agregar
+                </Button>
+              </Group>
+              {editFieldOptions.length > 0 ? (
+                <Stack gap={4}>
+                  {editFieldOptions.map((opt, i) => (
+                    <Group key={i} gap="xs" justify="space-between" p={6}
+                      style={{ background: 'var(--mantine-color-dark)', borderRadius: 4 }}>
+                      <Text size="xs" c="dimmed" fw={600} style={{ minWidth: 20 }}>{i + 1}.</Text>
+                      {editOptEditIdx === i ? (
+                        <TextInput
+                          size="xs"
+                          value={editOptEditValue}
+                          onChange={(e) => setEditOptEditValue(e.currentTarget.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && editOptEditValue.trim()) {
+                              setEditFieldOptions(prev => prev.map((o, j) => j === i ? editOptEditValue.trim() : o));
+                              setEditOptEditIdx(null);
+                            }
+                            if (e.key === 'Escape') setEditOptEditIdx(null);
+                          }}
+                          style={{ flex: 1 }}
+                          autoFocus
+                        />
+                      ) : (
+                        <Text size="xs" style={{ flex: 1 }}>{opt}</Text>
+                      )}
+                      {editOptEditIdx === i ? (
+                        <ActionIcon size="xs" color="green" variant="subtle"
+                          onClick={() => { if (editOptEditValue.trim()) { setEditFieldOptions(prev => prev.map((o, j) => j === i ? editOptEditValue.trim() : o)); setEditOptEditIdx(null); } }}>
+                          ✓
+                        </ActionIcon>
+                      ) : (
+                        <ActionIcon size="xs" color="blue" variant="subtle"
+                          onClick={() => { setEditOptEditIdx(i); setEditOptEditValue(opt); }}>
+                          ✎
+                        </ActionIcon>
+                      )}
+                      <ActionIcon size="xs" color="red" variant="subtle" onClick={() => { removeEditListOption(i); if (editOptEditIdx === i) setEditOptEditIdx(null); }}>
+                        <IconTrash size={12} />
+                      </ActionIcon>
+                    </Group>
+                  ))}
+                </Stack>
+              ) : (
+                <Text size="xs" c="dimmed">Sin opciones. Agrega al menos una.</Text>
+              )}
+              <Checkbox
+                label="Permitir opción OTRO"
+                size="xs"
+                checked={editFieldAllowOther}
+                onChange={(e) => setEditFieldAllowOther(e.currentTarget.checked)}
+              />
+              {editFieldAllowOther && (
+                <TextInput
+                  label="Mensaje para OTRO"
+                  description="Pregunta que el bot le hará al usuario cuando elija OTRO"
+                  placeholder="ej: Por favor describe tu respuesta"
+                  size="xs"
+                  value={editFieldOtherLabel}
+                  onChange={(e) => setEditFieldOtherLabel(e.currentTarget.value)}
+                />
+              )}
+            </Stack>
+          )}
+
           <Group justify="flex-end" mt="xs">
             <Button variant="subtle" onClick={cancelEditField}>Cancelar</Button>
             <Button
@@ -1291,7 +1430,8 @@ export default function DashboardPage() {
                 !editFieldLabel.trim() ||
                 (editingFieldIdx !== null && configFields[editingFieldIdx]?.source === 'admin'
                   ? !editFieldPlaceholder.trim()
-                  : !editFieldQuestion.trim())
+                  : !editFieldQuestion.trim()) ||
+                (editingFieldIdx !== null && configFields[editingFieldIdx]?.type === 'list' && editFieldOptions.length === 0)
               }
             >
               Guardar

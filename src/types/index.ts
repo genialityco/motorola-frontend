@@ -82,6 +82,8 @@ export interface BotField {
   visible?: boolean;
   excel?: boolean;
   options?: string[];
+  allowOther?: boolean;
+  otherLabel?: string;
 }
 
 export interface SystemFieldConfig {
