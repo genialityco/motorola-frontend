@@ -143,6 +143,18 @@ export default function DashboardPage() {
   const [editOptEditIdx, setEditOptEditIdx] = useState<number | null>(null);
   const [editOptEditValue, setEditOptEditValue] = useState('');
 
+  const handleCancelEditField = () => {
+    setEditOptEditIdx(null);
+    setEditOptEditValue('');
+    cancelEditField();
+  };
+
+  const handleSaveEditField = () => {
+    setEditOptEditIdx(null);
+    setEditOptEditValue('');
+    saveEditField();
+  };
+
   // ── Computed ─────────────────────────────────────────────────────────────────
   const hostsMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -1286,7 +1298,7 @@ export default function DashboardPage() {
       </Modal>
 
       {/* ── Modal: Editar campo ────────────────────────────────────────────── */}
-      <Modal opened={editFieldOpen} onClose={cancelEditField} title="Editar Campo" size="md" centered>
+      <Modal opened={editFieldOpen} onClose={handleCancelEditField} title="Editar Campo" size="md" centered>
         <Stack>
           {editingFieldIdx !== null && configFields[editingFieldIdx] && (
             <Stack gap="xs" pb="md" style={{ borderBottom: '1px solid var(--mantine-color-gray-2)' }}>
@@ -1423,9 +1435,9 @@ export default function DashboardPage() {
           )}
 
           <Group justify="flex-end" mt="xs">
-            <Button variant="subtle" onClick={cancelEditField}>Cancelar</Button>
+            <Button variant="subtle" onClick={handleCancelEditField}>Cancelar</Button>
             <Button
-              onClick={saveEditField}
+              onClick={handleSaveEditField}
               disabled={
                 !editFieldLabel.trim() ||
                 (editingFieldIdx !== null && configFields[editingFieldIdx]?.source === 'admin'
