@@ -12,12 +12,27 @@ import { useTicketDetail } from "@/hooks/useTicketDetail";
 import { useBotConfig } from "@/hooks/useBotConfig";
 
 const STATUS_COLORS: Record<TicketStatus, string> = {
-  REPORTADO: "gray", REVISION: "blue", EN_REPARACION: "yellow",
-  REPARADO: "teal", ENTREGADO: "green", FINALIZADO: "green", ARCHIVADO: "",
+  REPORTADO: "gray",
+  EN_PROGRAMACION: "blue",
+  PROGRAMADO: "cyan",
+  REPROGRAMADO: "orange",
+  REPARADO: "teal",
+  FINALIZADO: "green",
+  ARCHIVADO: "",
+};
+
+const STATUS_LABELS: Record<TicketStatus, string> = {
+  REPORTADO: "Reportado",
+  EN_PROGRAMACION: "En programación",
+  PROGRAMADO: "Programado",
+  REPROGRAMADO: "Reprogramado",
+  REPARADO: "Reparado",
+  FINALIZADO: "Finalizado",
+  ARCHIVADO: "Archivado",
 };
 
 const STATUS_OPTIONS: TicketStatus[] = [
-  "REPORTADO", "REVISION", "EN_REPARACION", "REPARADO", "ENTREGADO", "FINALIZADO",
+  "REPORTADO", "EN_PROGRAMACION", "PROGRAMADO", "REPROGRAMADO", "REPARADO", "FINALIZADO",
 ];
 
 function getNestedFieldValue(obj: Record<string, unknown>, path: string) {
@@ -268,10 +283,15 @@ export default function TicketDetailPage() {
     deletingPhoto,
     uploadingField,
     updatingFieldKey,
+    scheduledModal, setScheduledModal,
+    scheduledDate, setScheduledDate,
+    scheduledTime, setScheduledTime,
+    scheduledDateError,
     requestModal, setRequestModal,
     requestMessage, setRequestMessage,
     requestingField,
     changeStatus,
+    confirmScheduledTransition,
     deletePhoto,
     uploadPhotos,
     updateExtraField,
@@ -291,7 +311,7 @@ export default function TicketDetailPage() {
       <Group justify="space-between" mb="lg">
         <Title order={2}>Ticket: {ticket.ticketNumber}</Title>
         <Badge size="xl" color={STATUS_COLORS[ticket.status] || "gray"}>
-          {ticket.status}
+          {STATUS_LABELS[ticket.status] ?? ticket.status}
         </Badge>
       </Group>
 
@@ -410,12 +430,22 @@ export default function TicketDetailPage() {
                 <Timeline.Item
                   key={idx}
                   title={
-                    <Badge color={STATUS_COLORS[entry.status] || "gray"}>{entry.status}</Badge>
+                    <Badge color={STATUS_COLORS[entry.status] || "gray"}>
+                      {STATUS_LABELS[entry.status] ?? entry.status}
+                    </Badge>
                   }
                 >
                   <Text size="sm">
                     {entry.timestamp ? new Date(entry.timestamp).toLocaleString("es-CO") : "—"}
                   </Text>
+                  {entry.scheduledDate && (() => {
+                    const d = new Date(entry.scheduledDate);
+                    return !isNaN(d.getTime()) ? (
+                      <Text size="xs" c="cyan">
+                        Fecha programada: {d.toLocaleString("es-CO")}
+                      </Text>
+                    ) : null;
+                  })()}
                 </Timeline.Item>
               ))}
             </Timeline>
@@ -432,14 +462,57 @@ export default function TicketDetailPage() {
             onClick={() => changeStatus(status)}
             loading={loadingStatus === status}
             disabled={ticket.status === status || loadingStatus !== null}
-            color={ticket.status === status ? "gray" : "dark"}
+            color={ticket.status === status ? "gray" : STATUS_COLORS[status] || "dark"}
             variant={ticket.status === status ? "filled" : "outline"}
             size="sm"
           >
-            {status}
+            {STATUS_LABELS[status]}
           </Button>
         ))}
       </Group>
+
+      {/* ── Modal: fecha programada ── */}
+      <Modal
+        opened={!!scheduledModal}
+        onClose={() => setScheduledModal(null)}
+        title={`Programar ticket — ${scheduledModal ? STATUS_LABELS[scheduledModal.status] : ''}`}
+      >
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            Para cambiar el ticket a <strong>{scheduledModal ? STATUS_LABELS[scheduledModal.status] : ''}</strong>{" "}
+            debes indicar la fecha de atención programada.
+          </Text>
+          <Group grow>
+            <TextInput
+              type="date"
+              label="Fecha programada"
+              required
+              value={scheduledDate}
+              onChange={(e) => setScheduledDate(e.currentTarget.value)}
+              error={scheduledDateError}
+            />
+            <TextInput
+              type="time"
+              label="Hora programada"
+              required
+              value={scheduledTime}
+              onChange={(e) => setScheduledTime(e.currentTarget.value)}
+            />
+          </Group>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setScheduledModal(null)}>
+              Cancelar
+            </Button>
+            <Button
+              color={scheduledModal ? STATUS_COLORS[scheduledModal.status] || "dark" : "dark"}
+              loading={loadingStatus !== null}
+              onClick={confirmScheduledTransition}
+            >
+              Confirmar
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
 
       {/* ── Modal: solicitar mejora de campo ── */}
       <Modal

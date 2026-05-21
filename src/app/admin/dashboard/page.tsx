@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useRef } from 'react';
-import { Ticket, BotField, BotMessages, BotSettings, FieldType, FieldSource, SystemFieldConfig } from '@/types';
+import { Ticket, BotField, BotMessages, BotSettings, FieldType, FieldSource, SystemFieldConfig, ComplianceLevel } from '@/types';
 import {
   Table, Badge, Group, Title, Paper, Button,
   Popover, Checkbox, Text, Stack, Select,
@@ -43,11 +43,51 @@ const TYPE_COLORS: Record<FieldType, string> = {
 const SOURCE_LABELS: Record<string, string> = { bot: 'Chat (Bot)', admin: 'Panel Admin', auto: 'Automático' };
 const SOURCE_COLORS: Record<string, string> = { bot: 'teal', admin: 'indigo', auto: 'gray' };
 const STATUS_COLORS: Record<string, string> = {
-  REPORTADO: 'red', REVISION: 'blue', EN_REPARACION: 'yellow',
-  REPARADO: 'teal', ENTREGADO: 'green', FINALIZADO: 'green', ARCHIVADO: 'gray',
+  REPORTADO: 'red',
+  EN_PROGRAMACION: 'blue',
+  PROGRAMADO: 'cyan',
+  REPROGRAMADO: 'orange',
+  REPARADO: 'teal',
+  FINALIZADO: 'green',
+  ARCHIVADO: 'gray',
 };
-const ALL_STATUSES = ['REPORTADO', 'REVISION', 'EN_REPARACION', 'REPARADO', 'ENTREGADO'];
-const ACTIVE_TICKET_STATUSES = new Set(['REPORTADO', 'REVISION', 'EN_REPARACION', 'REPARADO', 'ENTREGADO']);
+const STATUS_LABELS: Record<string, string> = {
+  REPORTADO: 'Reportado',
+  EN_PROGRAMACION: 'En programación',
+  PROGRAMADO: 'Programado',
+  REPROGRAMADO: 'Reprogramado',
+  REPARADO: 'Reparado',
+  FINALIZADO: 'Finalizado',
+  ARCHIVADO: 'Archivado',
+};
+const ALL_STATUSES = ['REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO'];
+const ACTIVE_TICKET_STATUSES = new Set(['REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO']);
+
+const COMPLIANCE_COLORS: Record<ComplianceLevel, string> = {
+  A_TIEMPO: 'green',
+  ATENCION_PRIORITARIA: 'yellow',
+  FUERA_DE_TIEMPO: 'red',
+};
+const COMPLIANCE_LABELS: Record<ComplianceLevel, string> = {
+  A_TIEMPO: 'A tiempo',
+  ATENCION_PRIORITARIA: 'Atención prioritaria',
+  FUERA_DE_TIEMPO: 'Fuera de tiempo',
+};
+const COMPLIANCE_EXCEL: Record<ComplianceLevel, string> = {
+  A_TIEMPO: '🟢 A tiempo',
+  ATENCION_PRIORITARIA: '🟡 Atención prioritaria',
+  FUERA_DE_TIEMPO: '🔴 Fuera de tiempo',
+};
+
+function getComplianceLevel(createdAt: number | undefined, settings: BotSettings): ComplianceLevel {
+  if (!createdAt) return 'A_TIEMPO';
+  const days = Math.floor((Date.now() - createdAt) / 86_400_000);
+  const aTiempoMax = settings.compliance?.aTiempoMaxDias ?? 7;
+  const atencionMax = settings.compliance?.atencionPrioritariaMaxDias ?? 14;
+  if (days <= aTiempoMax) return 'A_TIEMPO';
+  if (days <= atencionMax) return 'ATENCION_PRIORITARIA';
+  return 'FUERA_DE_TIEMPO';
+}
 
 // ── Utility ────────────────────────────────────────────────────────────────────
 function getFieldValue(ticket: Ticket, key: string): string {
@@ -108,6 +148,7 @@ export default function DashboardPage() {
     openEditField, saveEditField, cancelEditField,
     addField, addListOption, removeListOption,
     addEditListOption, removeEditListOption,
+    moveSysField,
   } = useBotConfig();
   const {
     hosts,
@@ -130,6 +171,7 @@ export default function DashboardPage() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [filterFields, setFilterFieldsState] = useState<Record<string, string[]>>({});
   const [filterEstados, setFilterEstados] = useState<string[]>([]);
+  const [filterAlerta, setFilterAlerta] = useState<string[]>([]);
   const [filterFechaFrom, setFilterFechaFrom] = useState('');
   const [filterFechaTo, setFilterFechaTo] = useState('');
   const [dateModalOpen, setDateModalOpen] = useState(false);
@@ -162,16 +204,14 @@ export default function DashboardPage() {
     return m;
   }, [hosts]);
 
-  // Map system fields for easy visibility lookup
-  const sysFieldMap = useMemo(() => {
-    const m: Record<string, SystemFieldConfig> = {};
-    systemFields.forEach((f) => { m[f.key] = f; });
-    return m;
-  }, [systemFields]);
-
   const visibleFields = useMemo(
     () => configFields.filter((f) => f.visible !== false),
     [configFields],
+  );
+
+  const visibleSysFields = useMemo(
+    () => systemFields.filter((sf) => sf.visible !== false && (sf.key !== 'alertaCumplimiento' || ticketSubTab === 'activos')),
+    [systemFields, ticketSubTab],
   );
 
   const uniqueFieldValues = useMemo(() => {
@@ -198,6 +238,7 @@ export default function DashboardPage() {
         if (vals.length && !vals.includes(getFieldValue(t, key))) return false;
       }
       if (filterEstados.length && !filterEstados.includes(t.status)) return false;
+      if (filterAlerta.length && !filterAlerta.includes(getComplianceLevel(t.timestamps?.createdAt, configSettings))) return false;
       if (filterFechaFrom) {
         const from = new Date(filterFechaFrom).getTime();
         if ((t.timestamps?.createdAt || 0) < from) return false;
@@ -208,7 +249,7 @@ export default function DashboardPage() {
       }
       return true;
     });
-  }, [tickets, ticketSubTab, filterFields, filterEstados, filterFechaFrom, filterFechaTo]);
+  }, [tickets, ticketSubTab, filterFields, filterEstados, filterAlerta, filterFechaFrom, filterFechaTo, configSettings]);
 
   const sorted = useMemo(() => {
     return [...filtered].sort((a, b) => {
@@ -216,6 +257,7 @@ export default function DashboardPage() {
       if (sortCol === 'ticketNumber') { aVal = a.ticketNumber ?? 0; bVal = b.ticketNumber ?? 0; }
       else if (sortCol === 'createdAt') { aVal = a.timestamps?.createdAt ?? 0; bVal = b.timestamps?.createdAt ?? 0; }
       else if (sortCol === 'estado') { aVal = a.status ?? ''; bVal = b.status ?? ''; }
+      else if (sortCol === 'alertaCumplimiento') { aVal = a.timestamps?.createdAt ?? 0; bVal = b.timestamps?.createdAt ?? 0; }
       else { aVal = getFieldValue(a, sortCol); bVal = getFieldValue(b, sortCol); }
 
       const aStr = String(aVal);
@@ -239,10 +281,12 @@ export default function DashboardPage() {
   const getHostTickets = (telefono: string) => tickets.filter((t) => t.reporter?.phone === telefono);
 
   const exportToExcel = () => {
-    const data = tickets.map((t) => {
-      const row: Record<string, unknown> = { 'Ticket #': t.ticketNumber, 'Estado': t.status };
+    const data = tickets.filter((t) => t.status !== 'ARCHIVADO').map((t) => {
+      const row: Record<string, unknown> = { 'Ticket #': t.ticketNumber, 'Estado': STATUS_LABELS[t.status] ?? t.status };
       configFields.filter((f) => f.excel === true).forEach((f) => { row[f.label || f.key] = getFieldValue(t, f.key) || ''; });
+      const level = getComplianceLevel(t.timestamps?.createdAt, configSettings);
       Object.assign(row, {
+        'Alerta de cumplimiento': t.status === 'FINALIZADO' ? '' : COMPLIANCE_EXCEL[level],
         'Reportado Por': hostsMap.get(t.reporter?.phone) || t.reporter?.name || '',
         'Teléfono Reportante': t.reporter?.phone || '',
         'Fecha Creación': t.timestamps?.createdAt ? new Date(t.timestamps.createdAt).toLocaleString('es-CO') : '',
@@ -260,7 +304,7 @@ export default function DashboardPage() {
   const endIdx = Math.min(page * pageSizeNum, sorted.length);
 
   // Count visible columns for colSpan
-  const visibleSysCols = systemFields.filter((f) => f.visible).length;
+  const visibleSysCols = visibleSysFields.length;
   const totalCols = visibleSysCols + visibleFields.length + 1; // +1 for Acciones
 
   function SortIcon({ col }: { col: SortCol }) {
@@ -351,6 +395,141 @@ export default function DashboardPage() {
   const ticketListPreview = 'Tus tickets:\n\n' +
     configMessages.ticketListItemTemplate.replace(/\{(\w+)\}/g, (_, k) => sampleTicketVars[k] ?? `{${k}}`);
 
+  const renderSysColHeader = (sf: SystemFieldConfig) => {
+    switch (sf.key) {
+      case 'ticketNumber':
+        return (
+          <Table.Th key={sf.key}>
+            <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('ticketNumber')}>
+              <Text size="sm" fw={600}>Ticket #</Text>
+              <SortIcon col="ticketNumber" />
+            </Group>
+          </Table.Th>
+        );
+      case 'createdAt':
+        return (
+          <Table.Th key={sf.key}>
+            <Group gap={4} wrap="nowrap">
+              <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('createdAt')}>
+                <Text size="sm" fw={600}>Creación</Text>
+                <SortIcon col="createdAt" />
+              </Group>
+              <Tooltip label={dateFilterActive ? 'Filtro activo' : 'Filtrar por fecha'} withArrow>
+                <ActionIcon size="xs" variant="subtle" color={dateFilterActive ? 'blue' : 'gray'} onClick={() => setDateModalOpen(true)}>
+                  <IconFilter size={13} />
+                </ActionIcon>
+              </Tooltip>
+            </Group>
+          </Table.Th>
+        );
+      case 'estado':
+        return (
+          <Table.Th key={sf.key}>
+            <Group gap={4} wrap="nowrap">
+              <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('estado')}>
+                <Text size="sm" fw={600}>Estado</Text>
+                <SortIcon col="estado" />
+              </Group>
+              <Popover withArrow shadow="md" position="bottom-start" withinPortal>
+                <Popover.Target>
+                  <ActionIcon size="xs" variant="subtle" color={filterEstados.length > 0 ? 'blue' : 'gray'}>
+                    <IconFilter size={13} />
+                  </ActionIcon>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Text size="xs" fw={700} mb="xs">Estado</Text>
+                  <Checkbox.Group value={filterEstados} onChange={withPageReset(setFilterEstados)}>
+                    <Stack gap={6}>
+                      {ALL_STATUSES.map((s) => <Checkbox key={s} value={s} label={STATUS_LABELS[s] ?? s} size="xs" />)}
+                    </Stack>
+                  </Checkbox.Group>
+                  {filterEstados.length > 0 && (
+                    <Button size="xs" variant="subtle" color="red" mt="xs" onClick={() => { setFilterEstados([]); setPage(1); }}>
+                      Limpiar
+                    </Button>
+                  )}
+                </Popover.Dropdown>
+              </Popover>
+            </Group>
+          </Table.Th>
+        );
+      case 'alertaCumplimiento':
+        return (
+          <Table.Th key={sf.key}>
+            <Group gap={4} wrap="nowrap">
+              <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('alertaCumplimiento')}>
+                <Text size="sm" fw={600}>Alerta</Text>
+                <SortIcon col="alertaCumplimiento" />
+              </Group>
+              <Popover withArrow shadow="md" position="bottom-start" withinPortal>
+                <Popover.Target>
+                  <ActionIcon size="xs" variant="subtle" color={filterAlerta.length > 0 ? 'blue' : 'gray'}>
+                    <IconFilter size={13} />
+                  </ActionIcon>
+                </Popover.Target>
+                <Popover.Dropdown>
+                  <Text size="xs" fw={700} mb="xs">Alerta de cumplimiento</Text>
+                  <Checkbox.Group value={filterAlerta} onChange={(v) => { setFilterAlerta(v); setPage(1); }}>
+                    <Stack gap={6}>
+                      {(['A_TIEMPO', 'ATENCION_PRIORITARIA', 'FUERA_DE_TIEMPO'] as ComplianceLevel[]).map((level) => (
+                        <Checkbox key={level} value={level} label={COMPLIANCE_LABELS[level]} size="xs" />
+                      ))}
+                    </Stack>
+                  </Checkbox.Group>
+                  {filterAlerta.length > 0 && (
+                    <Button size="xs" variant="subtle" color="red" mt="xs" onClick={() => { setFilterAlerta([]); setPage(1); }}>
+                      Limpiar
+                    </Button>
+                  )}
+                </Popover.Dropdown>
+              </Popover>
+            </Group>
+          </Table.Th>
+        );
+      case 'reporter':
+        return <Table.Th key={sf.key}><Text size="sm" fw={600}>Reportado Por</Text></Table.Th>;
+      default:
+        return null;
+    }
+  };
+
+  const renderSysColCell = (sf: SystemFieldConfig, ticket: Ticket) => {
+    switch (sf.key) {
+      case 'ticketNumber':
+        return <Table.Td key={sf.key} fw={500}>{ticket.ticketNumber}</Table.Td>;
+      case 'createdAt':
+        return (
+          <Table.Td key={sf.key}>
+            {ticket.timestamps?.createdAt
+              ? new Date(ticket.timestamps.createdAt).toLocaleDateString('es-CO')
+              : 'Fecha N/A'}
+          </Table.Td>
+        );
+      case 'estado':
+        return (
+          <Table.Td key={sf.key}>
+            <Badge size="sm" color={STATUS_COLORS[ticket.status] || 'gray'}>{STATUS_LABELS[ticket.status] ?? ticket.status}</Badge>
+          </Table.Td>
+        );
+      case 'alertaCumplimiento': {
+        const level = getComplianceLevel(ticket.timestamps?.createdAt, configSettings);
+        return (
+          <Table.Td key={sf.key}>
+            <Badge size="sm" color={COMPLIANCE_COLORS[level]}>{COMPLIANCE_LABELS[level]}</Badge>
+          </Table.Td>
+        );
+      }
+      case 'reporter':
+        return (
+          <Table.Td key={sf.key}>
+            {hostsMap.get(ticket.reporter?.phone) || ticket.reporter?.name || ticket.reporter?.phone}
+          </Table.Td>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <Paper p="md" shadow="sm" radius="md" withBorder>
       <Tabs value={activeTab} onChange={setActiveTab}>
@@ -400,59 +579,7 @@ export default function DashboardPage() {
           <Table striped highlightOnHover style={{ tableLayout: 'auto' }}>
             <Table.Thead>
               <Table.Tr>
-                {sysFieldMap.ticketNumber?.visible !== false && (
-                  <Table.Th>
-                    <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('ticketNumber')}>
-                      <Text size="sm" fw={600}>Ticket #</Text>
-                      <SortIcon col="ticketNumber" />
-                    </Group>
-                  </Table.Th>
-                )}
-                {sysFieldMap.createdAt?.visible !== false && (
-                  <Table.Th>
-                    <Group gap={4} wrap="nowrap">
-                      <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('createdAt')}>
-                        <Text size="sm" fw={600}>Creación</Text>
-                        <SortIcon col="createdAt" />
-                      </Group>
-                      <Tooltip label={dateFilterActive ? 'Filtro activo' : 'Filtrar por fecha'} withArrow>
-                        <ActionIcon size="xs" variant="subtle" color={dateFilterActive ? 'blue' : 'gray'} onClick={() => setDateModalOpen(true)}>
-                          <IconFilter size={13} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </Group>
-                  </Table.Th>
-                )}
-                {sysFieldMap.estado?.visible !== false && (
-                  <Table.Th>
-                    <Group gap={4} wrap="nowrap">
-                      <Group gap={4} wrap="nowrap" style={{ cursor: 'pointer' }} onClick={() => handleSort('estado')}>
-                        <Text size="sm" fw={600}>Estado</Text>
-                        <SortIcon col="estado" />
-                      </Group>
-                      <Popover withArrow shadow="md" position="bottom-start" withinPortal>
-                        <Popover.Target>
-                          <ActionIcon size="xs" variant="subtle" color={filterEstados.length > 0 ? 'blue' : 'gray'}>
-                            <IconFilter size={13} />
-                          </ActionIcon>
-                        </Popover.Target>
-                        <Popover.Dropdown>
-                          <Text size="xs" fw={700} mb="xs">Estado</Text>
-                          <Checkbox.Group value={filterEstados} onChange={withPageReset(setFilterEstados)}>
-                            <Stack gap={6}>
-                              {ALL_STATUSES.map((s) => <Checkbox key={s} value={s} label={s} size="xs" />)}
-                            </Stack>
-                          </Checkbox.Group>
-                          {filterEstados.length > 0 && (
-                            <Button size="xs" variant="subtle" color="red" mt="xs" onClick={() => { setFilterEstados([]); setPage(1); }}>
-                              Limpiar
-                            </Button>
-                          )}
-                        </Popover.Dropdown>
-                      </Popover>
-                    </Group>
-                  </Table.Th>
-                )}
+                {visibleSysFields.map((sf) => renderSysColHeader(sf))}
                 {visibleFields.map((field) => (
                   <Table.Th key={field.key}>
                     <Group gap={4} wrap="nowrap">
@@ -486,38 +613,16 @@ export default function DashboardPage() {
                     </Group>
                   </Table.Th>
                 ))}
-                {sysFieldMap.reporter?.visible !== false && (
-                  <Table.Th><Text size="sm" fw={600}>Reportado Por</Text></Table.Th>
-                )}
                 <Table.Th><Text size="sm" fw={600}>Acciones</Text></Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>
               {paginated.map((ticket) => (
                 <Table.Tr key={ticket.id}>
-                  {sysFieldMap.ticketNumber?.visible !== false && (
-                    <Table.Td fw={500}>{ticket.ticketNumber}</Table.Td>
-                  )}
-                  {sysFieldMap.createdAt?.visible !== false && (
-                    <Table.Td>
-                      {ticket.timestamps?.createdAt
-                        ? new Date(ticket.timestamps.createdAt).toLocaleDateString('es-CO')
-                        : 'Fecha N/A'}
-                    </Table.Td>
-                  )}
-                  {sysFieldMap.estado?.visible !== false && (
-                    <Table.Td>
-                      <Badge size="sm" color={STATUS_COLORS[ticket.status] || 'gray'}>{ticket.status}</Badge>
-                    </Table.Td>
-                  )}
+                  {visibleSysFields.map((sf) => renderSysColCell(sf, ticket))}
                   {visibleFields.map((field) => (
                     <Table.Td key={field.key}>{getFieldValue(ticket, field.key) || '—'}</Table.Td>
                   ))}
-                  {sysFieldMap.reporter?.visible !== false && (
-                    <Table.Td>
-                      {hostsMap.get(ticket.reporter?.phone) || ticket.reporter?.name || ticket.reporter?.phone}
-                    </Table.Td>
-                  )}
                   <Table.Td>
                     <Button component={Link} href={`/admin/dashboard/tickets/${ticket.id}`} size="xs" variant="light">
                       Ver Detalle
@@ -681,6 +786,7 @@ export default function DashboardPage() {
                         w={160}
                       />
                     </Stack>
+
                     <Stack gap={4}>
                       <Text size="sm" fw={600}>Mensaje al expirar sesión de creación</Text>
                       <Text size="xs" c="dimmed">Se envía cuando el usuario dejó un ticket a medio crear.</Text>
@@ -976,17 +1082,18 @@ export default function DashboardPage() {
               {/* ── Campos del sistema ─────────────────────────────────── */}
               <Title order={4} mb={4}>Campos del sistema</Title>
               <Text size="xs" c="dimmed" mb="sm">
-                Columnas fijas del sistema. Solo se pueden mostrar u ocultar en la tabla de tickets.
+                Columnas fijas del sistema. Puedes mostrar u ocultar cada columna y reordenarlas en la tabla de tickets.
               </Text>
               <Table withTableBorder withColumnBorders mb="xl" style={{ tableLayout: 'fixed' }}>
                 <Table.Thead>
                   <Table.Tr>
                     <Table.Th>Campo</Table.Th>
                     <Table.Th style={{ width: 110, textAlign: 'center' }}>Visible en tabla</Table.Th>
+                    <Table.Th style={{ width: 70, textAlign: 'center' }}>Orden</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
-                  {systemFields.map((sf) => (
+                  {systemFields.map((sf, idx) => (
                     <Table.Tr key={sf.key}>
                       <Table.Td>
                         <Text size="sm" fw={500}>{sf.label}</Text>
@@ -1002,10 +1109,75 @@ export default function DashboardPage() {
                           }
                         />
                       </Table.Td>
+                      <Table.Td>
+                        <Group gap={2} wrap="nowrap" justify="center">
+                          <Tooltip label="Subir" withArrow>
+                            <ActionIcon size="xs" variant="subtle" onClick={() => moveSysField(idx, 'up')} disabled={idx === 0}>↑</ActionIcon>
+                          </Tooltip>
+                          <Tooltip label="Bajar" withArrow>
+                            <ActionIcon size="xs" variant="subtle" onClick={() => moveSysField(idx, 'down')} disabled={idx === systemFields.length - 1}>↓</ActionIcon>
+                          </Tooltip>
+                        </Group>
+                      </Table.Td>
                     </Table.Tr>
                   ))}
                 </Table.Tbody>
               </Table>
+
+              {/* ── Límites de alerta de cumplimiento ──────────────────── */}
+              <Title order={5} mb={4} mt="xs">Límites de tiempo para alertas</Title>
+              <Text size="xs" c="dimmed" mb="sm">
+                Define cuántos días desde la creación del ticket corresponden a cada nivel. La columna <strong>Alerta</strong> de la tabla usa estos valores.
+              </Text>
+              {(() => {
+                const aTiempo = configSettings.compliance?.aTiempoMaxDias ?? 7;
+                const atencion = configSettings.compliance?.atencionPrioritariaMaxDias ?? 14;
+                const complianceError = aTiempo >= atencion
+                  ? '"A tiempo" debe ser menor que "Atención prioritaria".'
+                  : null;
+                return (
+                  <>
+                    <Group gap="lg" align="flex-end" mb="xs">
+                      <Stack gap={4}>
+                        <Badge color="green" size="sm">🟢 A tiempo — máximo</Badge>
+                        <NumberInput
+                          value={aTiempo}
+                          onChange={(v) => setConfigSettings((prev: BotSettings) => ({
+                            ...prev,
+                            compliance: { aTiempoMaxDias: Number(v) || 1, atencionPrioritariaMaxDias: prev.compliance?.atencionPrioritariaMaxDias ?? 14 },
+                          }))}
+                          min={1} max={365} step={1} suffix=" días" w={150}
+                          error={!!complianceError}
+                        />
+                      </Stack>
+                      <Stack gap={4}>
+                        <Badge color="yellow" size="sm">🟡 Atención prioritaria — máximo</Badge>
+                        <NumberInput
+                          value={atencion}
+                          onChange={(v) => setConfigSettings((prev: BotSettings) => ({
+                            ...prev,
+                            compliance: { aTiempoMaxDias: prev.compliance?.aTiempoMaxDias ?? 7, atencionPrioritariaMaxDias: Number(v) || 1 },
+                          }))}
+                          min={1} max={365} step={1} suffix=" días" w={150}
+                          error={!!complianceError}
+                        />
+                      </Stack>
+                      <Stack gap={4}>
+                        <Badge color="red" size="sm">🔴 Fuera de tiempo — desde</Badge>
+                        <Text size="sm" fw={600} pt={6}>
+                          Día {atencion + 1} en adelante
+                        </Text>
+                      </Stack>
+                    </Group>
+                    {complianceError && (
+                      <Text size="xs" c="red" mb="xs">{complianceError}</Text>
+                    )}
+                    <Button size="xs" loading={savingSettings} onClick={saveSettings} mb="lg" disabled={!!complianceError}>
+                      Guardar límites de alerta
+                    </Button>
+                  </>
+                );
+              })()}
 
               <Divider mb="md" />
 
@@ -1472,7 +1644,7 @@ export default function DashboardPage() {
                 {hostTickets.map((t) => (
                   <Table.Tr key={t.id}>
                     <Table.Td fw={500}>{t.ticketNumber}</Table.Td>
-                    <Table.Td><Badge size="sm" color={STATUS_COLORS[t.status] || 'gray'}>{t.status}</Badge></Table.Td>
+                    <Table.Td><Badge size="sm" color={STATUS_COLORS[t.status] || 'gray'}>{STATUS_LABELS[t.status] ?? t.status}</Badge></Table.Td>
                     {visibleFields.map((f) => <Table.Td key={f.key}>{getFieldValue(t, f.key) || '—'}</Table.Td>)}
                     <Table.Td>{t.timestamps?.createdAt ? new Date(t.timestamps.createdAt).toLocaleDateString('es-CO') : '—'}</Table.Td>
                     <Table.Td>

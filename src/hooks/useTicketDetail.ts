@@ -15,6 +15,12 @@ export function useTicketDetail(ticketId: string) {
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
   const [historyExpanded, setHistoryExpanded] = useState(false);
 
+  // Scheduled date modal (for PROGRAMADO / REPROGRAMADO)
+  const [scheduledModal, setScheduledModal] = useState<{ status: TicketStatus } | null>(null);
+  const [scheduledDate, setScheduledDate] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('');
+  const [scheduledDateError, setScheduledDateError] = useState<string | null>(null);
+
   // Per-field accordion expansion state
   const [expandedFields, setExpandedFields] = useState<Record<string, boolean>>({});
 
@@ -80,6 +86,7 @@ export function useTicketDetail(ticketId: string) {
       timestamp: ticket.timestamps?.createdAt ? Number(ticket.timestamps.createdAt) : 0,
       comments: 'Ticket creado',
       changedBy: undefined as StatusHistoryEntry['changedBy'],
+      scheduledDate: undefined as string | undefined,
     };
     return [
       initial,
@@ -88,6 +95,7 @@ export function useTicketDetail(ticketId: string) {
         timestamp: e.timestamp,
         comments: e.comments,
         changedBy: e.changedBy,
+        scheduledDate: e.scheduledDate,
       })),
     ];
   }, [ticket, history]);
@@ -96,15 +104,26 @@ export function useTicketDetail(ticketId: string) {
     setExpandedFields((prev) => ({ ...prev, [fieldKey]: !prev[fieldKey] }));
   };
 
-  const changeStatus = async (newStatus: TicketStatus) => {
+  const changeStatus = (newStatus: TicketStatus) => {
+    if (newStatus === 'PROGRAMADO' || newStatus === 'REPROGRAMADO') {
+      setScheduledDate('');
+      setScheduledTime('');
+      setScheduledDateError(null);
+      setScheduledModal({ status: newStatus });
+      return;
+    }
+    void executeTransition(newStatus);
+  };
+
+  const executeTransition = async (newStatus: TicketStatus, date?: string) => {
     setLoadingStatus(newStatus);
     setErrorStatus(null);
     try {
-      await ticketsService.transition(ticketId, newStatus);
+      await ticketsService.transition(ticketId, newStatus, undefined, date);
       showToast({
         type: 'success',
         title: 'Estado actualizado',
-        message: `El ticket cambió a ${newStatus}.`,
+        message: `El ticket cambió a ${newStatus.replace('_', ' ')}.`,
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Algo salió mal al transicionar el estado.';
@@ -117,6 +136,18 @@ export function useTicketDetail(ticketId: string) {
     } finally {
       setLoadingStatus(null);
     }
+  };
+
+  const confirmScheduledTransition = async () => {
+    if (!scheduledModal) return;
+    if (!scheduledDate || !scheduledTime) {
+      setScheduledDateError('La fecha y hora programadas son obligatorias.');
+      return;
+    }
+    const newStatus = scheduledModal.status;
+    const scheduledDateTime = `${scheduledDate}T${scheduledTime}`;
+    setScheduledModal(null);
+    await executeTransition(newStatus, scheduledDateTime);
   };
 
   const deletePhoto = async (fieldKey: string, idx: number) => {
@@ -205,10 +236,15 @@ export function useTicketDetail(ticketId: string) {
     deletingPhoto,
     uploadingField,
     updatingFieldKey,
+    scheduledModal, setScheduledModal,
+    scheduledDate, setScheduledDate,
+    scheduledTime, setScheduledTime,
+    scheduledDateError,
     requestModal, setRequestModal,
     requestMessage, setRequestMessage,
     requestingField,
     changeStatus,
+    confirmScheduledTransition,
     deletePhoto,
     uploadPhotos,
     updateExtraField,

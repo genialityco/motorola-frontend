@@ -9,10 +9,10 @@ export interface User {
 
 export type TicketStatus =
   | 'REPORTADO'
-  | 'REVISION'
-  | 'EN_REPARACION'
+  | 'EN_PROGRAMACION'
+  | 'PROGRAMADO'
+  | 'REPROGRAMADO'
   | 'REPARADO'
-  | 'ENTREGADO'
   | 'FINALIZADO'
   | 'ARCHIVADO';
 
@@ -38,6 +38,14 @@ export interface StatusHistoryEntry {
   changedBy?: { uid?: string; role?: string };
   comments?: string;
   timestamp: number;
+  scheduledDate?: string;
+}
+
+export type ComplianceLevel = 'A_TIEMPO' | 'ATENCION_PRIORITARIA' | 'FUERA_DE_TIEMPO';
+
+export interface ComplianceLimits {
+  aTiempoMaxDias: number;
+  atencionPrioritariaMaxDias: number;
 }
 
 export type FieldType = 'string' | 'numeric' | 'date' | 'photo' | 'video' | 'boolean' | 'list';
@@ -67,6 +75,7 @@ export interface BotMessages {
 
 export interface BotSettings {
   sessionTimeoutHours: number;
+  compliance?: ComplianceLimits;
 }
 
 export interface BotField {

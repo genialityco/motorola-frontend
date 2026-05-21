@@ -29,6 +29,10 @@ const DEFAULT_BOT_MESSAGES: BotMessages = {
 
 const DEFAULT_BOT_SETTINGS: BotSettings = {
   sessionTimeoutHours: 24,
+  compliance: {
+    aTiempoMaxDias: 7,
+    atencionPrioritariaMaxDias: 14,
+  },
 };
 
 const DEFAULT_BOT_FIELDS: BotField[] = [
@@ -45,6 +49,7 @@ const SYSTEM_FIELDS_DEFAULT: SystemFieldConfig[] = [
   { key: 'ticketNumber', label: 'Ticket #', visible: true },
   { key: 'createdAt', label: 'Creación', visible: true },
   { key: 'estado', label: 'Estado', visible: true },
+  { key: 'alertaCumplimiento', label: 'Alerta', visible: true },
   { key: 'reporter', label: 'Reportado Por', visible: true },
 ];
 
@@ -89,7 +94,12 @@ export function useBotConfig() {
       doc(db, 'bot_config', 'settings'),
       (snap) => {
         if (snap.exists()) {
-          setConfigSettings({ ...DEFAULT_BOT_SETTINGS, ...(snap.data() as Partial<BotSettings>) });
+          const saved = snap.data() as Partial<BotSettings>;
+          setConfigSettings({
+            ...DEFAULT_BOT_SETTINGS,
+            ...saved,
+            compliance: { ...DEFAULT_BOT_SETTINGS.compliance!, ...(saved.compliance ?? {}) },
+          });
         }
       },
       () => {},
@@ -190,6 +200,14 @@ export function useBotConfig() {
     if (target < 0 || target >= next.length) return;
     [next[idx], next[target]] = [next[target], next[idx]];
     setConfigFields(next);
+  };
+
+  const moveSysField = (idx: number, dir: 'up' | 'down') => {
+    const next = [...systemFields];
+    const target = dir === 'up' ? idx - 1 : idx + 1;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    setSystemFields(next);
   };
 
   const deleteField = (idx: number) => {
@@ -343,7 +361,7 @@ export function useBotConfig() {
     editFieldAllowOther, setEditFieldAllowOther,
     editFieldOtherLabel, setEditFieldOtherLabel,
     saveMessages, saveFields, saveSettings,
-    moveField, deleteField,
+    moveField, moveSysField, deleteField,
     openEditField, saveEditField, cancelEditField,
     addField, addListOption, removeListOption,
     addEditListOption, removeEditListOption,

@@ -18,8 +18,8 @@ export interface ImportResult {
 }
 
 export const ticketsService = {
-  transition: (ticketId: string, newStatus: TicketStatus, comments = 'Transición desde el Dashboard Web') =>
-    apiClient.post(`/api/tickets/${ticketId}/transition`, { newStatus, comments }),
+  transition: (ticketId: string, newStatus: TicketStatus, comments = 'Transición desde el Dashboard Web', scheduledDate?: string) =>
+    apiClient.post(`/api/tickets/${ticketId}/transition`, { newStatus, comments, ...(scheduledDate ? { scheduledDate } : {}) }),
 
   deletePhoto: (ticketId: string, fieldKey: string, idx: number) =>
     apiClient.delete(`/api/tickets/${ticketId}/photos/${fieldKey}/${idx}`),
