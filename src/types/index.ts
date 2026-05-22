@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'host' | 'client' | 'workshop' | 'transporter';
+export type Role = 'admin' | 'gestor' | 'host' | 'client' | 'workshop' | 'transporter';
 
 export interface User {
   id: string;
@@ -16,6 +16,13 @@ export type TicketStatus =
   | 'FINALIZADO'
   | 'ARCHIVADO';
 
+export interface TicketObservation {
+  uid: string;
+  role: string;
+  text: string;
+  timestamp: number;
+}
+
 export interface Ticket {
   id: string;
   ticketNumber: string;
@@ -29,6 +36,8 @@ export interface Ticket {
     updatedAt: number;
   };
   extraFields?: Record<string, string | string[]>;
+  assignedGestorIds?: string[];
+  observations?: TicketObservation[];
 }
 
 export interface StatusHistoryEntry {

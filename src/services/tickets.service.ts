@@ -38,4 +38,7 @@ export const ticketsService = {
     formData.append('file', file);
     return apiClient.postForm<ImportResult>('/api/tickets/import', formData);
   },
+
+  addObservation: (ticketId: string, text: string) =>
+    apiClient.post(`/api/tickets/${ticketId}/observations`, { text }),
 };

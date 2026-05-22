@@ -1,0 +1,138 @@
+'use client';
+
+import { useMemo, useState } from 'react';
+import { Group, Title, Button, Tabs, Badge, Select, Text, Pagination } from '@mantine/core';
+import { Ticket, BotField, BotSettings, SystemFieldConfig, Host } from '@/types';
+import { useTicketsFilter } from '../../_hooks/useTicketsFilter';
+import { ACTIVE_TICKET_STATUSES } from '../../_constants';
+import { exportTicketsToExcel, getFieldValue } from '../../_utils';
+import { TicketsTable } from './TicketsTable';
+import { DateFilterModal } from './DateFilterModal';
+import { ImportTicketsModal } from '@/components/ImportTicketsModal';
+
+interface Props {
+  isAdmin: boolean;
+  tickets: Ticket[];
+  hosts: Host[];
+  configFields: BotField[];
+  visibleFields: BotField[];
+  systemFields: SystemFieldConfig[];
+  configSettings: BotSettings;
+}
+
+export function TicketsTab({
+  isAdmin, tickets, hosts, configFields, visibleFields, systemFields, configSettings,
+}: Props) {
+  const filter = useTicketsFilter(tickets, configSettings);
+  const [dateModalOpen, setDateModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+
+  const visibleSysFields = useMemo(
+    () => systemFields.filter(
+      (sf) => sf.visible !== false && (sf.key !== 'alertaCumplimiento' || filter.ticketSubTab === 'activos'),
+    ),
+    [systemFields, filter.ticketSubTab],
+  );
+
+  const hostsMap = useMemo(() => {
+    const m = new Map<string, string>();
+    hosts.forEach((h) => m.set(h.telefono, h.nombre));
+    return m;
+  }, [hosts]);
+
+  const uniqueFieldValues = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const field of configFields) {
+      map[field.key] = [...new Set(tickets.map((t) => getFieldValue(t, field.key)).filter(Boolean))].sort();
+    }
+    return map;
+  }, [tickets, configFields]);
+
+  return (
+    <>
+      <Group justify="space-between" mb="md">
+        <Title order={2}>Gestor de Tickets</Title>
+        {isAdmin && (
+          <Group gap="xs">
+            <Button onClick={() => setImportModalOpen(true)} variant="light" color="blue">
+              Importar Tickets
+            </Button>
+            <Button onClick={() => exportTicketsToExcel(tickets, configFields, configSettings, hostsMap)} variant="light" color="green">
+              Exportar Tickets
+            </Button>
+          </Group>
+        )}
+      </Group>
+
+      <Tabs value={filter.ticketSubTab} onChange={(v) => { filter.setTicketSubTab(v); filter.setPage(1); }} mb="lg">
+        <Tabs.List>
+          <Tabs.Tab value="activos">
+            Tickets
+            <Badge size="xs" ml={6} color="blue" variant="light">
+              {tickets.filter((t) => ACTIVE_TICKET_STATUSES.has(t.status)).length}
+            </Badge>
+          </Tabs.Tab>
+          <Tabs.Tab value="archivados">
+            Archivados
+            <Badge size="xs" ml={6} color="gray" variant="light">
+              {tickets.filter((t) => t.status === 'ARCHIVADO').length}
+            </Badge>
+          </Tabs.Tab>
+          <Tabs.Tab value="finalizados">
+            Finalizados
+            <Badge size="xs" ml={6} color="green" variant="light">
+              {tickets.filter((t) => t.status === 'FINALIZADO').length}
+            </Badge>
+          </Tabs.Tab>
+        </Tabs.List>
+      </Tabs>
+
+      <TicketsTable
+        filter={filter}
+        visibleSysFields={visibleSysFields}
+        visibleFields={visibleFields}
+        uniqueFieldValues={uniqueFieldValues}
+        configSettings={configSettings}
+        hostsMap={hostsMap}
+        onOpenDateFilter={() => setDateModalOpen(true)}
+      />
+
+      <Group justify="space-between" mt="lg" align="center" wrap="wrap" gap="sm">
+        <Group gap="xs" align="center">
+          <Text size="sm" c="dimmed">
+            {filter.sorted.length === 0
+              ? 'Sin tickets'
+              : `Mostrando ${filter.startIdx}–${filter.endIdx} de ${filter.sorted.length} ticket${filter.sorted.length !== 1 ? 's' : ''}`}
+          </Text>
+          <Select
+            value={filter.pageSize}
+            onChange={(val) => { if (val) { filter.setPageSize(val); filter.setPage(1); } }}
+            data={['5', '10', '20', '50']}
+            size="xs"
+            w={72}
+            allowDeselect={false}
+          />
+          <Text size="sm" c="dimmed">por página</Text>
+        </Group>
+        <Pagination total={filter.totalPages} value={filter.page} onChange={filter.setPage} size="sm" />
+      </Group>
+
+      <DateFilterModal
+        opened={dateModalOpen}
+        onClose={() => setDateModalOpen(false)}
+        from={filter.filterFechaFrom}
+        to={filter.filterFechaTo}
+        onFromChange={filter.setFilterFechaFrom}
+        onToChange={filter.setFilterFechaTo}
+        onClear={() => { filter.setFilterFechaFrom(''); filter.setFilterFechaTo(''); filter.setPage(1); }}
+        onApply={() => { filter.setPage(1); setDateModalOpen(false); }}
+      />
+
+      <ImportTicketsModal
+        opened={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        configFields={configFields}
+      />
+    </>
+  );
+}
