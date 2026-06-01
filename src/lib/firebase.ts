@@ -28,4 +28,12 @@ if (process.env.NEXT_PUBLIC_USE_EMULATORS === "true") {
   }
 }
 
+export const COLLECTIONS = {
+  TICKETS: 'eventos_ACE',
+  SESSIONS: 'whatsapp_sessions_ACE',
+  HOSTS: 'hosts_ACE',
+  BOT_CONFIG: 'bot_config_ACE',
+  GESTORS: 'gestor_ACE',
+} as const;
+
 export { app, db, functions, auth, storage };

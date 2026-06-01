@@ -33,29 +33,35 @@ export const SOURCE_COLORS: Record<string, string> = {
 };
 
 export const STATUS_COLORS: Record<string, string> = {
-  REPORTADO: 'red',
-  EN_PROGRAMACION: 'blue',
-  PROGRAMADO: 'cyan',
-  REPROGRAMADO: 'orange',
-  REPARADO: 'teal',
+  SOLICITUD_RECIBIDA: 'red',
+  APROBACION_PIEZAS: 'orange',
+  EN_MONTAJE: 'blue',
+  ENLACE_PUBLICADO: 'cyan',
+  PRODUCCION_PREVIA: 'grape',
+  PRODUCCION_POSTERIOR: 'teal',
   FINALIZADO: 'green',
   ARCHIVADO: 'gray',
 };
 
 export const STATUS_LABELS: Record<string, string> = {
-  REPORTADO: 'Reportado',
-  EN_PROGRAMACION: 'En programación',
-  PROGRAMADO: 'Programado',
-  REPROGRAMADO: 'Reprogramado',
-  REPARADO: 'Reparado',
+  SOLICITUD_RECIBIDA: 'Solicitud recibida',
+  APROBACION_PIEZAS: 'Aprobación de piezas',
+  EN_MONTAJE: 'En montaje',
+  ENLACE_PUBLICADO: 'Enlace publicado',
+  PRODUCCION_PREVIA: 'Producción previa',
+  PRODUCCION_POSTERIOR: 'Producción posterior',
   FINALIZADO: 'Finalizado',
   ARCHIVADO: 'Archivado',
 };
 
-export const ALL_STATUSES = ['REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO'];
+export const ALL_STATUSES = [
+  'SOLICITUD_RECIBIDA', 'APROBACION_PIEZAS', 'EN_MONTAJE',
+  'ENLACE_PUBLICADO', 'PRODUCCION_PREVIA', 'PRODUCCION_POSTERIOR',
+];
 
 export const ACTIVE_TICKET_STATUSES = new Set([
-  'REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO',
+  'SOLICITUD_RECIBIDA', 'APROBACION_PIEZAS', 'EN_MONTAJE',
+  'ENLACE_PUBLICADO', 'PRODUCCION_PREVIA', 'PRODUCCION_POSTERIOR',
 ]);
 
 export const COMPLIANCE_COLORS: Record<ComplianceLevel, string> = {

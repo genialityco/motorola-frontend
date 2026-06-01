@@ -7,7 +7,6 @@ import { STATUS_COLORS, STATUS_LABELS } from '../_constants';
 interface TimelineEntry {
   status: TicketStatus;
   timestamp?: number;
-  scheduledDate?: number | string;
 }
 
 interface Props {
@@ -40,14 +39,6 @@ export function StatusHistory({ timeline, expanded, onToggle }: Props) {
                 <Text size="sm">
                   {entry.timestamp ? new Date(entry.timestamp).toLocaleString('es-CO') : '—'}
                 </Text>
-                {entry.scheduledDate && (() => {
-                  const d = new Date(entry.scheduledDate);
-                  return !isNaN(d.getTime()) ? (
-                    <Text size="xs" c="cyan">
-                      Fecha programada: {d.toLocaleString('es-CO')}
-                    </Text>
-                  ) : null;
-                })()}
               </Timeline.Item>
             ))}
           </Timeline>

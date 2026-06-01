@@ -8,20 +8,16 @@ import { useAppToast } from '@/components/toast-provider';
 export function useStatusTransitions(ticketId: string, onError: (msg: string | null) => void) {
   const { showToast } = useAppToast();
   const [loadingStatus, setLoadingStatus] = useState<TicketStatus | null>(null);
-  const [scheduledModal, setScheduledModal] = useState<{ status: TicketStatus } | null>(null);
-  const [scheduledDate, setScheduledDate] = useState('');
-  const [scheduledTime, setScheduledTime] = useState('');
-  const [scheduledDateError, setScheduledDateError] = useState<string | null>(null);
 
-  const executeTransition = async (newStatus: TicketStatus, date?: string) => {
+  const executeTransition = async (newStatus: TicketStatus) => {
     setLoadingStatus(newStatus);
     onError(null);
     try {
-      await ticketsService.transition(ticketId, newStatus, undefined, date);
+      await ticketsService.transition(ticketId, newStatus);
       showToast({
         type: 'success',
         title: 'Estado actualizado',
-        message: `El ticket cambió a ${newStatus.replace('_', ' ')}.`,
+        message: `El ticket cambió a ${newStatus.replace(/_/g, ' ')}.`,
       });
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : 'Algo salió mal al transicionar el estado.';
@@ -33,34 +29,11 @@ export function useStatusTransitions(ticketId: string, onError: (msg: string | n
   };
 
   const changeStatus = (newStatus: TicketStatus) => {
-    if (newStatus === 'PROGRAMADO' || newStatus === 'REPROGRAMADO') {
-      setScheduledDate('');
-      setScheduledTime('');
-      setScheduledDateError(null);
-      setScheduledModal({ status: newStatus });
-      return;
-    }
     void executeTransition(newStatus);
-  };
-
-  const confirmScheduledTransition = async () => {
-    if (!scheduledModal) return;
-    if (!scheduledDate || !scheduledTime) {
-      setScheduledDateError('La fecha y hora programadas son obligatorias.');
-      return;
-    }
-    const newStatus = scheduledModal.status;
-    const scheduledDateTime = `${scheduledDate}T${scheduledTime}`;
-    setScheduledModal(null);
-    await executeTransition(newStatus, scheduledDateTime);
   };
 
   return {
     loadingStatus,
-    scheduledModal, setScheduledModal,
-    scheduledDate, setScheduledDate,
-    scheduledTime, setScheduledTime,
-    scheduledDateError,
-    changeStatus, confirmScheduledTransition,
+    changeStatus,
   };
 }

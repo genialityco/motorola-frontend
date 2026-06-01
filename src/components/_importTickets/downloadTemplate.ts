@@ -8,7 +8,7 @@ export function downloadImportTemplate(configFields: BotField[]) {
   const example: Record<string, string> = {
     'Teléfono Reportante': '3001234567',
     'Reportado Por': 'Juan Pérez',
-    'Estado': 'REPORTADO',
+    'Estado': 'SOLICITUD_RECIBIDA',
   };
 
   for (const f of importableFields) {
@@ -31,7 +31,7 @@ export function downloadImportTemplate(configFields: BotField[]) {
     ['INSTRUCCIONES DE IMPORTACIÓN'],
     [''],
     ['Columnas obligatorias:', 'Teléfono Reportante'],
-    ['Estados válidos:', 'REPORTADO, REVISION, EN_REPARACION, REPARADO, ENTREGADO, FINALIZADO, ARCHIVADO'],
+    ['Estados válidos:', 'SOLICITUD_RECIBIDA, APROBACION_PIEZAS, EN_MONTAJE, ENLACE_PUBLICADO, PRODUCCION_PREVIA, PRODUCCION_POSTERIOR, FINALIZADO, ARCHIVADO'],
     ['Teléfono:', 'Número colombiano de 10 dígitos (ej: 3001234567) o con código de país (ej: 573001234567)'],
     [''],
     ...importableFields

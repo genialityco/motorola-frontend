@@ -8,11 +8,12 @@ export interface User {
 }
 
 export type TicketStatus =
-  | 'REPORTADO'
-  | 'EN_PROGRAMACION'
-  | 'PROGRAMADO'
-  | 'REPROGRAMADO'
-  | 'REPARADO'
+  | 'SOLICITUD_RECIBIDA'
+  | 'APROBACION_PIEZAS'
+  | 'EN_MONTAJE'
+  | 'ENLACE_PUBLICADO'
+  | 'PRODUCCION_PREVIA'
+  | 'PRODUCCION_POSTERIOR'
   | 'FINALIZADO'
   | 'ARCHIVADO';
 
@@ -47,7 +48,6 @@ export interface StatusHistoryEntry {
   changedBy?: { uid?: string; role?: string };
   comments?: string;
   timestamp: number;
-  scheduledDate?: string;
 }
 
 export type ComplianceLevel = 'A_TIEMPO' | 'ATENCION_PRIORITARIA' | 'FUERA_DE_TIEMPO';
@@ -65,7 +65,7 @@ export interface BotMessages {
   ticketCreated: string;
   ticketDeleted: string;
   statusChanged: string;
-  reparadoMessage: string;
+  aprobacionPiezasMessage: string;
   noTickets: string;
   invalidField: string;
   cancelled: string;

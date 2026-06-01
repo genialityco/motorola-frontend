@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { collection, doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { COLLECTIONS, db } from '@/lib/firebase';
 import { ChatSession, Host, SessionMessage } from '@/types';
 import { whatsappService } from '@/services/whatsapp.service';
 import { useAppToast } from '@/components/toast-provider';
@@ -20,7 +20,7 @@ export function useWhatsappSessions() {
 
   useEffect(() => {
     const unsub = onSnapshot(
-      collection(db, 'hosts'),
+      collection(db, COLLECTIONS.HOSTS),
       (snapshot) => {
         const map: Record<string, string> = {};
         snapshot.docs.forEach((d) => {
@@ -36,7 +36,7 @@ export function useWhatsappSessions() {
 
   useEffect(() => {
     const unsub = onSnapshot(
-      collection(db, 'whatsapp_sessions'),
+      collection(db, COLLECTIONS.SESSIONS),
       (snapshot) => {
         const list: ChatSession[] = snapshot.docs.map((d) => {
           const data = d.data();
@@ -64,7 +64,7 @@ export function useWhatsappSessions() {
   useEffect(() => {
     if (!selectedPhone) return;
     const unsub = onSnapshot(
-      doc(db, 'whatsapp_sessions', selectedPhone),
+      doc(db, COLLECTIONS.SESSIONS, selectedPhone),
       (snap) => {
         if (snap.exists()) {
           const data = snap.data();

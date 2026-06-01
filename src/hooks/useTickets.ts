@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { COLLECTIONS, db } from '@/lib/firebase';
 import { Ticket } from '@/types';
 
 export function useTickets(role?: string | null, uid?: string | null) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    const baseCollection = collection(db, 'tickets');
+    const baseCollection = collection(db, COLLECTIONS.TICKETS);
     const q =
       role === 'gestor' && uid
         ? query(baseCollection, where('assignedGestorIds', 'array-contains', uid))

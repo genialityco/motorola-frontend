@@ -16,7 +16,7 @@ export function VerFlowPanel({ configMessages, setConfigMessages, trackFocus, in
   const sampleTicketVars: Record<string, string> = {
     index: '1',
     ticketNumber: 'TKT-00000',
-    estado: 'REPORTADO',
+    estado: 'SOLICITUD_RECIBIDA',
     fecha: '8/5/2026',
     ...textTicketFields.reduce<Record<string, string>>((acc, f) => {
       const leafKey = f.key.split('.').pop() || f.key;

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { COLLECTIONS, db } from '@/lib/firebase';
 import { BotMessages, BotSettings, BotField, SystemFieldConfig } from '@/types';
 import { configService } from '@/services/config.service';
 import { useAppToast } from '@/components/toast-provider';
@@ -20,7 +20,7 @@ export function useConfigData() {
 
   useEffect(() => {
     const unsub = onSnapshot(
-      doc(db, 'bot_config', 'settings'),
+      doc(db, COLLECTIONS.BOT_CONFIG, 'settings'),
       (snap) => {
         if (snap.exists()) {
           const saved = snap.data() as Partial<BotSettings>;
@@ -38,7 +38,7 @@ export function useConfigData() {
 
   useEffect(() => {
     const unsub = onSnapshot(
-      doc(db, 'bot_config', 'messages'),
+      doc(db, COLLECTIONS.BOT_CONFIG, 'messages'),
       (snap) => {
         if (snap.exists()) {
           setConfigMessages({ ...DEFAULT_BOT_MESSAGES, ...(snap.data() as Partial<BotMessages>) });
@@ -51,7 +51,7 @@ export function useConfigData() {
 
   useEffect(() => {
     const unsub = onSnapshot(
-      doc(db, 'bot_config', 'ticket_fields'),
+      doc(db, COLLECTIONS.BOT_CONFIG, 'ticket_fields'),
       (snap) => {
         const data = snap.exists() ? snap.data() : {};
         const fields = data?.fields as BotField[] | undefined;

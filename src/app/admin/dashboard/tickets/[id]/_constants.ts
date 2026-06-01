@@ -1,27 +1,30 @@
 import { TicketStatus } from '@/types';
 
 export const STATUS_COLORS: Record<TicketStatus, string> = {
-  REPORTADO: 'gray',
-  EN_PROGRAMACION: 'blue',
-  PROGRAMADO: 'cyan',
-  REPROGRAMADO: 'orange',
-  REPARADO: 'teal',
+  SOLICITUD_RECIBIDA: 'gray',
+  APROBACION_PIEZAS: 'orange',
+  EN_MONTAJE: 'blue',
+  ENLACE_PUBLICADO: 'cyan',
+  PRODUCCION_PREVIA: 'grape',
+  PRODUCCION_POSTERIOR: 'teal',
   FINALIZADO: 'green',
   ARCHIVADO: '',
 };
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {
-  REPORTADO: 'Reportado',
-  EN_PROGRAMACION: 'En programación',
-  PROGRAMADO: 'Programado',
-  REPROGRAMADO: 'Reprogramado',
-  REPARADO: 'Reparado',
+  SOLICITUD_RECIBIDA: 'Solicitud recibida',
+  APROBACION_PIEZAS: 'Aprobación de piezas',
+  EN_MONTAJE: 'En montaje',
+  ENLACE_PUBLICADO: 'Enlace publicado',
+  PRODUCCION_PREVIA: 'Producción previa',
+  PRODUCCION_POSTERIOR: 'Producción posterior',
   FINALIZADO: 'Finalizado',
   ARCHIVADO: 'Archivado',
 };
 
 export const STATUS_OPTIONS: TicketStatus[] = [
-  'REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'FINALIZADO',
+  'SOLICITUD_RECIBIDA', 'APROBACION_PIEZAS', 'EN_MONTAJE',
+  'ENLACE_PUBLICADO', 'PRODUCCION_PREVIA', 'PRODUCCION_POSTERIOR', 'FINALIZADO',
 ];
 
 export function getNestedFieldValue(obj: Record<string, unknown>, path: string) {

@@ -40,7 +40,7 @@ Firestore (real-time) ──→ hooks ──→ pages/components
 Component actions ──→ hooks ──→ services ──→ api.client.ts ──→ NestJS backend
 ```
 
-**`src/lib/firebase.ts`** — Initializes Firebase app once. Connects to emulators when `NEXT_PUBLIC_USE_EMULATORS=true`. Exports `auth`, `db`, `storage`.
+**`src/lib/firebase.ts`** — Initializes Firebase app once. Connects to emulators when `NEXT_PUBLIC_USE_EMULATORS=true`. Exports `auth`, `db`, `storage` and a `COLLECTIONS` constant — all Firestore collection names go through it (`COLLECTIONS.TICKETS`, `SESSIONS`, `HOSTS`, `BOT_CONFIG`, `GESTORS`). Never hardcode collection strings.
 
 **`src/services/api.client.ts`** — Fetch-based HTTP client (no axios). Injects `Authorization: Bearer <token>` from `auth.currentUser?.getIdToken()` on every request. Has `get`, `post`, `patch`, `delete`, `postForm` methods. Throws with the backend's error message on non-2xx responses.
 
@@ -60,12 +60,12 @@ Each hook owns one domain and is the single source of truth for that data. They 
 
 | Hook | Firestore source | Key output |
 |------|-----------------|------------|
-| `useTickets` | `tickets` collection | `tickets[]` real-time |
+| `useTickets` | `COLLECTIONS.TICKETS` (`eventos_ACE`) | `tickets[]` real-time |
 | `useTicketDetail` | single ticket doc + `statusHistory` subcollection | `ticket`, `history`, action methods |
-| `useWhatsappSessions` | `whatsapp_sessions` collection | `sessions[]`, `messages[]`, `handleSend()`, `handleToggleBot()` |
-| `useSimulator` | `whatsapp_sessions/{phone}` doc + polling | `messages[]`, `handleSend()`, `handleReset()` |
-| `useBotConfig` | `bot_config/messages`, `bot_config/ticket_fields`, `bot_config/settings` | config state + field CRUD methods |
-| `useHosts` | `hosts` collection | `hosts[]`, `saveHostNombre()` |
+| `useWhatsappSessions` | `COLLECTIONS.SESSIONS` (`whatsapp_sessions_ACE`) | `sessions[]`, `messages[]`, `handleSend()`, `handleToggleBot()` |
+| `useSimulator` | session doc + polling | `messages[]`, `handleSend()`, `handleReset()` |
+| `useBotConfig` | `COLLECTIONS.BOT_CONFIG` docs: `messages`, `ticket_fields`, `settings` | config state + field CRUD methods |
+| `useHosts` | `COLLECTIONS.HOSTS` (`hosts_ACE`) | `hosts[]`, `saveHostNombre()` |
 
 ### Pages
 
@@ -80,12 +80,14 @@ Each hook owns one domain and is the single source of truth for that data. They 
 ### Key Types (`src/types/index.ts`)
 
 ```typescript
-TicketStatus: 'REPORTADO' | 'REVISION' | 'EN_REPARACION' | 'REPARADO' | 'ENTREGADO' | 'FINALIZADO' | 'ARCHIVADO'
+TicketStatus: 'SOLICITUD_RECIBIDA' | 'APROBACION_PIEZAS' | 'EN_MONTAJE' | 'ENLACE_PUBLICADO' | 'PRODUCCION_PREVIA' | 'PRODUCCION_POSTERIOR' | 'FINALIZADO' | 'ARCHIVADO'
 FieldType:    'string' | 'numeric' | 'date' | 'photo' | 'video' | 'boolean' | 'list'
 FieldSource:  'bot' | 'admin' | 'auto'
 
 BotField: { key, label, question, order, type, source, required, visible, excel, options, allowOther }
 ```
+
+The backend auto-transitions a ticket from `SOLICITUD_RECIBIDA` to `APROBACION_PIEZAS` when an admin/gestor uploads a photo. The frontend should not try to enforce or duplicate that logic.
 
 Field keys support dot-notation (e.g. `photos.evidence`, `novelty.type`) matching the backend's nested field storage.
 

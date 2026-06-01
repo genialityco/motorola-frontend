@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { collection, doc, getDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { COLLECTIONS, db } from '@/lib/firebase';
 import { Ticket, TicketStatus, StatusHistoryEntry } from '@/types';
 
 export function useTicketData(ticketId: string) {
@@ -13,7 +13,7 @@ export function useTicketData(ticketId: string) {
 
   useEffect(() => {
     if (!ticket?.reporter?.phone) return;
-    getDoc(doc(db, 'hosts', ticket.reporter.phone)).then((snap) => {
+    getDoc(doc(db, COLLECTIONS.HOSTS, ticket.reporter.phone)).then((snap) => {
       if (snap.exists()) {
         const data = snap.data() as { nombre?: string };
         setHostName(data.nombre || null);
@@ -24,7 +24,7 @@ export function useTicketData(ticketId: string) {
   useEffect(() => {
     if (!ticketId) return;
     const unsub = onSnapshot(
-      doc(db, 'tickets', ticketId),
+      doc(db, COLLECTIONS.TICKETS, ticketId),
       (snap) => {
         if (snap.exists()) {
           setTicket({ id: snap.id, ...snap.data() } as Ticket);
@@ -41,7 +41,7 @@ export function useTicketData(ticketId: string) {
   useEffect(() => {
     if (!ticketId) return;
     const q = query(
-      collection(db, 'tickets', ticketId, 'statusHistory'),
+      collection(db, COLLECTIONS.TICKETS, ticketId, 'statusHistory'),
       orderBy('timestamp', 'asc'),
     );
     const unsub = onSnapshot(
@@ -59,11 +59,10 @@ export function useTicketData(ticketId: string) {
   const timeline = useMemo(() => {
     if (!ticket) return [];
     const initial = {
-      status: 'REPORTADO' as TicketStatus,
+      status: 'SOLICITUD_RECIBIDA' as TicketStatus,
       timestamp: ticket.timestamps?.createdAt ? Number(ticket.timestamps.createdAt) : 0,
       comments: 'Ticket creado',
       changedBy: undefined as StatusHistoryEntry['changedBy'],
-      scheduledDate: undefined as string | undefined,
     };
     return [
       initial,
@@ -72,7 +71,6 @@ export function useTicketData(ticketId: string) {
         timestamp: e.timestamp,
         comments: e.comments,
         changedBy: e.changedBy,
-        scheduledDate: e.scheduledDate,
       })),
     ];
   }, [ticket, history]);

@@ -14,7 +14,7 @@ interface Props {
 
 export function AccionesFlowPanel({ configMessages, setConfigMessages, trackFocus, insertVar, textTicketFields }: Props) {
   const sampleVars: Record<string, string> = {
-    index: '1', ticketNumber: 'TKT-00000', estado: 'REPORTADO', fecha: '8/5/2026',
+    index: '1', ticketNumber: 'TKT-00000', estado: 'SOLICITUD_RECIBIDA', fecha: '8/5/2026',
     ...textTicketFields.reduce<Record<string, string>>((acc, f) => {
       acc[f.key.split('.').pop() || f.key] = `[${f.label}]`;
       return acc;

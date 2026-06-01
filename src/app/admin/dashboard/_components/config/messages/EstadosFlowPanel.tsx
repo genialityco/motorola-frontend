@@ -35,15 +35,15 @@ export function EstadosFlowPanel({ configMessages, setConfigMessages, trackFocus
 
         <Stack gap={4}>
           <Group gap="xs" align="center">
-            <Text size="sm" fw={600}>Ticket reparado (con fotos de reparación)</Text>
+            <Text size="sm" fw={600}>Aprobación de piezas (con fotos adjuntadas por admin)</Text>
             <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
             <Badge size="xs" variant="outline" color="gray">{'{description}'}</Badge>
           </Group>
-          <Text size="xs" c="dimmed">+ Variables del ticket de arriba.</Text>
+          <Text size="xs" c="dimmed">+ Variables del ticket de arriba. Se envía automáticamente al pasar a APROBACION_PIEZAS.</Text>
           <Textarea
-            value={configMessages.reparadoMessage}
-            onChange={(e) => setConfigMessages((prev) => ({ ...prev, reparadoMessage: e.target.value }))}
-            onFocus={trackFocus('reparadoMessage')}
+            value={configMessages.aprobacionPiezasMessage}
+            onChange={(e) => setConfigMessages((prev) => ({ ...prev, aprobacionPiezasMessage: e.target.value }))}
+            onFocus={trackFocus('aprobacionPiezasMessage')}
             autosize minRows={2}
           />
         </Stack>

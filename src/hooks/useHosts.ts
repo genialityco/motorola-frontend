@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { collection, query, onSnapshot } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { COLLECTIONS, db } from '@/lib/firebase';
 import { Host } from '@/types';
 import { hostsService } from '@/services/hosts.service';
 import { useAppToast } from '@/components/toast-provider';
@@ -16,7 +16,7 @@ export function useHosts() {
   const [savingHost, setSavingHost] = useState(false);
 
   useEffect(() => {
-    const q = query(collection(db, 'hosts'));
+    const q = query(collection(db, COLLECTIONS.HOSTS));
     const unsub = onSnapshot(
       q,
       (snapshot) => {

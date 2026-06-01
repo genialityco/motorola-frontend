@@ -8,7 +8,6 @@ import { TicketHeader } from './_components/TicketHeader';
 import { TicketFields } from './_components/TicketFields';
 import { StatusHistory } from './_components/StatusHistory';
 import { StatusChanger } from './_components/StatusChanger';
-import { ScheduledDateModal } from './_components/ScheduledDateModal';
 import { RequestFieldModal } from './_components/RequestFieldModal';
 
 export default function TicketDetailPage() {
@@ -22,14 +21,10 @@ export default function TicketDetailPage() {
     historyExpanded, setHistoryExpanded,
     expandedFields, toggleField,
     deletingPhoto, uploadingField, updatingFieldKey,
-    scheduledModal, setScheduledModal,
-    scheduledDate, setScheduledDate,
-    scheduledTime, setScheduledTime,
-    scheduledDateError,
     requestModal, setRequestModal,
     requestMessage, setRequestMessage,
     requestingField,
-    changeStatus, confirmScheduledTransition,
+    changeStatus,
     deletePhoto, uploadPhotos, updateExtraField,
     requestFieldImprovement,
   } = useTicketDetail(ticketId);
@@ -71,18 +66,6 @@ export default function TicketDetailPage() {
         currentStatus={ticket.status}
         loadingStatus={loadingStatus}
         onChange={changeStatus}
-      />
-
-      <ScheduledDateModal
-        status={scheduledModal?.status ?? null}
-        onClose={() => setScheduledModal(null)}
-        date={scheduledDate}
-        setDate={setScheduledDate}
-        time={scheduledTime}
-        setTime={setScheduledTime}
-        error={scheduledDateError}
-        loading={loadingStatus !== null}
-        onConfirm={confirmScheduledTransition}
       />
 
       <RequestFieldModal
