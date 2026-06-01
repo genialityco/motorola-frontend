@@ -57,7 +57,7 @@ export interface ComplianceLimits {
   atencionPrioritariaMaxDias: number;
 }
 
-export type FieldType = 'string' | 'numeric' | 'date' | 'photo' | 'video' | 'boolean' | 'list';
+export type FieldType = 'string' | 'numeric' | 'date' | 'fecha' | 'photo' | 'video' | 'boolean' | 'list';
 export type FieldSource = 'bot' | 'admin' | 'auto';
 
 export interface BotMessages {

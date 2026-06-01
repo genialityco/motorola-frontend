@@ -66,6 +66,7 @@ export function AddFieldModal({ api }: Props) {
           data={[
             { value: 'string', label: 'Texto' },
             { value: 'numeric', label: 'Número' },
+            { value: 'fecha', label: 'Fecha y hora (DD/MM/AAAA, HH:mm)' },
             { value: 'photo', label: 'Fotos / Videos' },
             { value: 'boolean', label: 'Booleano (Sí / No)' },
             { value: 'list', label: 'Lista de opciones' },

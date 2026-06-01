@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Paper, Stack, Group, Text, Select, TextInput, Textarea, Button } from '@mantine/core';
 import { BotField } from '@/types';
+import { FECHA_FORMAT_LABEL, datetimeLocalToFecha, fechaToDatetimeLocal, isValidFecha } from '../../../_constants';
 
 interface Props {
   field: BotField;
@@ -27,6 +28,7 @@ export function AdminFieldEditor({ field, value, onSave, saving }: Props) {
   const handleSave = async () => {
     const next = draft.trim();
     if (!next) return;
+    if (field.type === 'fecha' && !isValidFecha(next)) return;
     await onSave(field.key, next);
   };
 
@@ -53,6 +55,16 @@ export function AdminFieldEditor({ field, value, onSave, saving }: Props) {
         />
       );
     }
+    if (field.type === 'fecha') {
+      return (
+        <TextInput
+          type="datetime-local"
+          value={fechaToDatetimeLocal(draft)}
+          onChange={(e) => setDraft(datetimeLocalToFecha(e.currentTarget.value))}
+          description={`Se guardará como ${FECHA_FORMAT_LABEL}`}
+        />
+      );
+    }
     if (field.type === 'numeric' || field.type === 'date') {
       return (
         <TextInput
@@ -73,6 +85,8 @@ export function AdminFieldEditor({ field, value, onSave, saving }: Props) {
     );
   };
 
+  const canSubmit = draft.trim().length > 0 && (field.type !== 'fecha' || isValidFecha(draft.trim()));
+
   return (
     <Paper withBorder radius="md" p="md">
       <Stack gap="xs">
@@ -91,7 +105,7 @@ export function AdminFieldEditor({ field, value, onSave, saving }: Props) {
           <Text size="xs" c="dimmed">
             {field.placeholder ? `Ejemplo: ${field.placeholder}` : 'Este campo es editable por el administrador.'}
           </Text>
-          <Button size="xs" onClick={handleSave} loading={saving} disabled={!draft.trim()}>
+          <Button size="xs" onClick={handleSave} loading={saving} disabled={!canSubmit}>
             {hasValue ? 'Actualizar campo' : 'Guardar campo'}
           </Button>
         </Group>

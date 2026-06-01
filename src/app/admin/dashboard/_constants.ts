@@ -3,7 +3,8 @@ import { ComplianceLevel, FieldType, BotSettings } from '@/types';
 export const TYPE_LABELS: Record<FieldType, string> = {
   string: 'Texto',
   numeric: 'Número',
-  date: 'Fecha',
+  date: 'Fecha (solo día)',
+  fecha: 'Fecha y hora',
   photo: 'Foto(s)/Video(s)',
   video: 'Video(s)',
   boolean: 'Booleano',
@@ -14,11 +15,50 @@ export const TYPE_COLORS: Record<FieldType, string> = {
   string: 'blue',
   numeric: 'orange',
   date: 'violet',
+  fecha: 'indigo',
   photo: 'pink',
   video: 'grape',
   boolean: 'cyan',
   list: 'lime',
 };
+
+export const FECHA_FORMAT_LABEL = 'DD/MM/AAAA, HH:mm';
+
+const FECHA_REGEX = /^(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2})$/;
+
+export function isValidFecha(raw: string): boolean {
+  const m = raw.match(FECHA_REGEX);
+  if (!m) return false;
+  const [, dd, mm, yyyy, hh, mi] = m;
+  const d = Number(dd), mo = Number(mm), y = Number(yyyy);
+  const h = Number(hh), min = Number(mi);
+  if (mo < 1 || mo > 12) return false;
+  if (h > 23 || min > 59) return false;
+  const dt = new Date(y, mo - 1, d, h, min);
+  return dt.getFullYear() === y && dt.getMonth() === mo - 1 && dt.getDate() === d;
+}
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+export function formatFecha(input: Date | string): string {
+  const d = input instanceof Date ? input : new Date(input);
+  if (isNaN(d.getTime())) return '';
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}, ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export function fechaToDatetimeLocal(raw: string): string {
+  const m = raw.match(FECHA_REGEX);
+  if (!m) return '';
+  const [, dd, mm, yyyy, hh, mi] = m;
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+}
+
+export function datetimeLocalToFecha(raw: string): string {
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/);
+  if (!m) return '';
+  const [, yyyy, mm, dd, hh, mi] = m;
+  return `${dd}/${mm}/${yyyy}, ${hh}:${mi}`;
+}
 
 export const SOURCE_LABELS: Record<string, string> = {
   bot: 'Chat (Bot)',

@@ -20,6 +20,8 @@ export function downloadImportTemplate(configFields: BotField[]) {
       example[col] = '0';
     } else if (f.type === 'boolean') {
       example[col] = 'true';
+    } else if (f.type === 'fecha') {
+      example[col] = '25/12/2026, 14:30';
     } else {
       example[col] = '';
     }
@@ -33,6 +35,7 @@ export function downloadImportTemplate(configFields: BotField[]) {
     ['Columnas obligatorias:', 'Teléfono Reportante'],
     ['Estados válidos:', 'SOLICITUD_RECIBIDA, APROBACION_PIEZAS, EN_MONTAJE, ENLACE_PUBLICADO, PRODUCCION_PREVIA, PRODUCCION_POSTERIOR, FINALIZADO, ARCHIVADO'],
     ['Teléfono:', 'Número colombiano de 10 dígitos (ej: 3001234567) o con código de país (ej: 573001234567)'],
+    ['Fecha y hora:', 'Formato DD/MM/AAAA, HH:mm (ej: 25/12/2026, 14:30)'],
     [''],
     ...importableFields
       .filter((f) => f.type === 'list' && f.options && f.options.length > 0)

@@ -55,14 +55,8 @@ export function useConfigData() {
       (snap) => {
         const data = snap.exists() ? snap.data() : {};
         const fields = data?.fields as BotField[] | undefined;
-        let toUse: BotField[];
-        if (fields && fields.length > 0) {
-          const savedKeys = new Set(fields.map((f) => f.key));
-          const newDefaults = DEFAULT_BOT_FIELDS.filter((df) => !savedKeys.has(df.key));
-          toUse = [...fields, ...newDefaults];
-        } else {
-          toUse = DEFAULT_BOT_FIELDS;
-        }
+        const toUse: BotField[] =
+          fields && fields.length > 0 ? fields : DEFAULT_BOT_FIELDS;
         setConfigFields([...toUse].sort((a, b) => a.order - b.order));
 
         const savedSysFields = data?.systemFields as SystemFieldConfig[] | undefined;
