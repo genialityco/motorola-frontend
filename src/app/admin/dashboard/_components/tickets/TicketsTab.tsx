@@ -6,6 +6,7 @@ import { Ticket, BotField, BotSettings, SystemFieldConfig, Host } from '@/types'
 import { useTicketsFilter } from '../../_hooks/useTicketsFilter';
 import { ACTIVE_TICKET_STATUSES } from '../../_constants';
 import { exportTicketsToExcel, getFieldValue } from '../../_utils';
+import { generateTicketsReport } from '../../_reportSummary';
 import { TicketsTable } from './TicketsTable';
 import { DateFilterModal } from './DateFilterModal';
 import { ImportTicketsModal } from '@/components/ImportTicketsModal';
@@ -59,6 +60,26 @@ export function TicketsTab({
             </Button>
             <Button onClick={() => exportTicketsToExcel(tickets, configFields, configSettings, hostsMap)} variant="light" color="green">
               Exportar Tickets
+            </Button>
+            <Button
+              onClick={() => generateTicketsReport({
+                tickets: filter.sorted,
+                configFields,
+                configSettings,
+                hostsMap,
+                filters: {
+                  subTab: filter.ticketSubTab,
+                  fieldFilters: filter.filterFields,
+                  estados: filter.filterEstados,
+                  alerta: filter.filterAlerta,
+                  fechaFrom: filter.filterFechaFrom,
+                  fechaTo: filter.filterFechaTo,
+                },
+              })}
+              variant="light"
+              color="grape"
+            >
+              Generar Informe
             </Button>
           </Group>
         )}
