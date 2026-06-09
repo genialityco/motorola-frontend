@@ -4,6 +4,7 @@ import { Title, Tabs } from '@mantine/core';
 import { useBotConfig } from '@/hooks/useBotConfig';
 import { MessagesPanel } from './messages/MessagesPanel';
 import { FieldsPanel } from './fields/FieldsPanel';
+import { EmailPanel } from './email/EmailPanel';
 
 interface Props {
   api: ReturnType<typeof useBotConfig>;
@@ -26,6 +27,7 @@ export function ConfigTab({ api }: Props) {
         <Tabs.List mb="lg">
           <Tabs.Tab value="messages">Mensajes</Tabs.Tab>
           <Tabs.Tab value="fields">Campos del Ticket</Tabs.Tab>
+          <Tabs.Tab value="email">Correo</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="messages">
@@ -40,6 +42,10 @@ export function ConfigTab({ api }: Props) {
 
         <Tabs.Panel value="fields">
           <FieldsPanel api={api} />
+        </Tabs.Panel>
+
+        <Tabs.Panel value="email">
+          <EmailPanel configFields={configFields} />
         </Tabs.Panel>
       </Tabs>
     </>

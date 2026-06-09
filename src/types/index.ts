@@ -120,6 +120,34 @@ export interface StandardField {
   required: boolean;
 }
 
+export type EmailEvent = 'created' | 'statusChanged';
+
+export interface EmailRecipient {
+  id: string;
+  email: string;
+  name: string;
+  type: 'admin' | 'gestor';
+  events: Record<EmailEvent, boolean>;
+}
+
+export interface EmailTemplate {
+  subject: string;
+  body: string;
+}
+
+export interface EmailConfig {
+  notifyAssignedGestores: boolean;
+  recipients: EmailRecipient[];
+  templates: Record<EmailEvent, EmailTemplate>;
+}
+
+export interface RecipientOption {
+  id: string;
+  email: string;
+  name: string;
+  type: 'admin' | 'gestor';
+}
+
 export interface Host {
   id: string;
   nombre: string;
