@@ -19,6 +19,7 @@ const EVENT_VARS: Record<EmailEvent, { key: string; label: string }[]> = {
     { key: 'reporterPhone', label: 'Teléfono' },
     { key: 'status', label: 'Estado' },
     { key: 'date', label: 'Fecha' },
+    { key: 'link', label: 'Botón "Ver ticket"' },
   ],
   statusChanged: [
     { key: 'ticketNumber', label: 'Nº Ticket' },
@@ -27,6 +28,7 @@ const EVENT_VARS: Record<EmailEvent, { key: string; label: string }[]> = {
     { key: 'prevStatus', label: 'Estado anterior' },
     { key: 'newStatus', label: 'Estado nuevo' },
     { key: 'date', label: 'Fecha' },
+    { key: 'link', label: 'Botón "Ver ticket"' },
   ],
 };
 
