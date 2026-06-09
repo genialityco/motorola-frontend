@@ -1,24 +1,46 @@
 'use client';
 
-import { Group, Title, Badge, Alert, Stack, Text } from '@mantine/core';
-import { Ticket } from '@/types';
+import { Group, Title, Badge, Alert, Stack, Text, Button } from '@mantine/core';
+import { IconDownload } from '@tabler/icons-react';
+import { BotField, Ticket, TicketStatus } from '@/types';
 import { STATUS_COLORS, STATUS_LABELS } from '../_constants';
+import { downloadTicketReport } from '../_report';
+
+interface TimelineEntry {
+  status: TicketStatus;
+  timestamp?: number;
+  scheduledDate?: number | string;
+}
 
 interface Props {
   ticket: Ticket;
   hostName: string | null;
   errorStatus: string | null;
   onClearError: () => void;
+  configFields: BotField[];
+  timeline: TimelineEntry[];
 }
 
-export function TicketHeader({ ticket, hostName, errorStatus, onClearError }: Props) {
+export function TicketHeader({ ticket, hostName, errorStatus, onClearError, configFields, timeline }: Props) {
   return (
     <>
       <Group justify="space-between" mb="lg">
         <Title order={2}>Ticket: {ticket.ticketNumber}</Title>
-        <Badge size="xl" color={STATUS_COLORS[ticket.status] || 'gray'}>
-          {STATUS_LABELS[ticket.status] ?? ticket.status}
-        </Badge>
+        <Group gap="sm">
+          {ticket.status === 'REPARADO' && (
+            <Button
+              leftSection={<IconDownload size={16} />}
+              color="teal"
+              variant="filled"
+              onClick={() => downloadTicketReport({ ticket, configFields, hostName, timeline })}
+            >
+              Descargar informe
+            </Button>
+          )}
+          <Badge size="xl" color={STATUS_COLORS[ticket.status] || 'gray'}>
+            {STATUS_LABELS[ticket.status] ?? ticket.status}
+          </Badge>
+        </Group>
       </Group>
 
       {errorStatus && (

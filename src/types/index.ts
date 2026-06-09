@@ -65,6 +65,8 @@ export interface BotMessages {
   ticketCreated: string;
   ticketDeleted: string;
   statusChanged: string;
+  programadoMessage: string;
+  reprogramadoMessage: string;
   reparadoMessage: string;
   noTickets: string;
   invalidField: string;

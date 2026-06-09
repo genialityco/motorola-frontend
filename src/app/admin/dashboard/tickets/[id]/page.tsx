@@ -45,6 +45,8 @@ export default function TicketDetailPage() {
         hostName={hostName}
         errorStatus={errorStatus}
         onClearError={() => setErrorStatus(null)}
+        configFields={configFields}
+        timeline={timeline}
       />
 
       <TicketFields

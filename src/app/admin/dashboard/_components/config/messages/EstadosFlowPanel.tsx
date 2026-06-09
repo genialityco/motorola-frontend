@@ -35,6 +35,40 @@ export function EstadosFlowPanel({ configMessages, setConfigMessages, trackFocus
 
         <Stack gap={4}>
           <Group gap="xs" align="center">
+            <Text size="sm" fw={600}>Ticket programado</Text>
+            <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+            <Badge size="xs" variant="outline" color="cyan">{'{scheduledDate}'}</Badge>
+          </Group>
+          <Text size="xs" c="dimmed">
+            Se envía cuando el estado pasa a PROGRAMADO. {'{scheduledDate}'} es la fecha y hora elegidas por el admin (formato es-CO).
+          </Text>
+          <Textarea
+            value={configMessages.programadoMessage}
+            onChange={(e) => setConfigMessages((prev) => ({ ...prev, programadoMessage: e.target.value }))}
+            onFocus={trackFocus('programadoMessage')}
+            autosize minRows={2}
+          />
+        </Stack>
+
+        <Stack gap={4}>
+          <Group gap="xs" align="center">
+            <Text size="sm" fw={600}>Ticket reprogramado</Text>
+            <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
+            <Badge size="xs" variant="outline" color="cyan">{'{scheduledDate}'}</Badge>
+          </Group>
+          <Text size="xs" c="dimmed">
+            Se envía cuando el estado pasa a REPROGRAMADO. {'{scheduledDate}'} es la nueva fecha y hora.
+          </Text>
+          <Textarea
+            value={configMessages.reprogramadoMessage}
+            onChange={(e) => setConfigMessages((prev) => ({ ...prev, reprogramadoMessage: e.target.value }))}
+            onFocus={trackFocus('reprogramadoMessage')}
+            autosize minRows={2}
+          />
+        </Stack>
+
+        <Stack gap={4}>
+          <Group gap="xs" align="center">
             <Text size="sm" fw={600}>Ticket reparado (con fotos de reparación)</Text>
             <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
             <Badge size="xs" variant="outline" color="gray">{'{description}'}</Badge>

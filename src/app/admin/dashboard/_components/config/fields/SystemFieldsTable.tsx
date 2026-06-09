@@ -29,11 +29,12 @@ export function SystemFieldsTable({ systemFields, setSystemFields, moveSysField 
               <Switch
                 size="xs"
                 checked={sf.visible}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const checked = e.currentTarget.checked;
                   setSystemFields((prev) =>
-                    prev.map((f) => (f.key === sf.key ? { ...f, visible: e.currentTarget.checked } : f)),
-                  )
-                }
+                    prev.map((f) => (f.key === sf.key ? { ...f, visible: checked } : f)),
+                  );
+                }}
               />
             </Table.Td>
             <Table.Td>
