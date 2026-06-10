@@ -1,6 +1,6 @@
 'use client';
 
-import { Group, Title, Button, Text } from '@mantine/core';
+import { Group, Title, Button, Text, Divider } from '@mantine/core';
 import { useBotConfig } from '@/hooks/useBotConfig';
 import { FieldsTable } from './FieldsTable';
 import { ComplianceLimits } from './ComplianceLimits';
@@ -21,6 +21,15 @@ export function FieldsPanel({ api }: Props) {
 
   return (
     <>
+      <ComplianceLimits
+        configSettings={configSettings}
+        setConfigSettings={setConfigSettings}
+        savingSettings={savingSettings}
+        saveSettings={saveSettings}
+      />
+
+      <Divider mb="md" />
+
       <Group justify="space-between" mb="xs">
         <div>
           <Title order={4} mb={2}>Campos de la tabla de tickets</Title>
@@ -42,13 +51,6 @@ export function FieldsPanel({ api }: Props) {
       />
 
       <Button onClick={saveFields} loading={savingFields} mb="xl">Guardar campos</Button>
-
-      <ComplianceLimits
-        configSettings={configSettings}
-        setConfigSettings={setConfigSettings}
-        savingSettings={savingSettings}
-        saveSettings={saveSettings}
-      />
 
       <AddFieldModal api={api} />
       <EditFieldModal api={api} />
