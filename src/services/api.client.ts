@@ -1,6 +1,8 @@
 import { auth } from '@/lib/firebase';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
+// Quitamos cualquier slash final para no generar URLs con doble slash
+// (`http://host//api/...`) cuando la variable de entorno trae un `/` al final.
+const BACKEND_URL = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001').replace(/\/+$/, '');
 
 async function getToken(): Promise<string> {
   const token = await auth.currentUser?.getIdToken();
