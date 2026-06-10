@@ -1,13 +1,18 @@
 import { useEffect, useState } from 'react';
-import { collection, query, onSnapshot } from 'firebase/firestore';
+import { collection, query, onSnapshot, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Ticket } from '@/types';
 
-export function useTickets() {
+export function useTickets(role?: string | null, uid?: string | null) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
 
   useEffect(() => {
-    const q = query(collection(db, 'tickets'));
+    const baseCollection = collection(db, 'tickets');
+    const q =
+      role === 'gestor' && uid
+        ? query(baseCollection, where('assignedGestorIds', 'array-contains', uid))
+        : query(baseCollection);
+
     const unsub = onSnapshot(
       q,
       (snapshot) => {
@@ -20,7 +25,7 @@ export function useTickets() {
       },
     );
     return () => unsub();
-  }, []);
+  }, [role, uid]);
 
   return { tickets };
 }

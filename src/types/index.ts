@@ -1,4 +1,4 @@
-export type Role = 'admin' | 'host' | 'client' | 'workshop' | 'transporter';
+export type Role = 'admin' | 'gestor' | 'host' | 'client' | 'workshop' | 'transporter';
 
 export interface User {
   id: string;
@@ -9,12 +9,19 @@ export interface User {
 
 export type TicketStatus =
   | 'REPORTADO'
-  | 'REVISION'
-  | 'EN_REPARACION'
+  | 'EN_PROGRAMACION'
+  | 'PROGRAMADO'
+  | 'REPROGRAMADO'
   | 'REPARADO'
-  | 'ENTREGADO'
   | 'FINALIZADO'
   | 'ARCHIVADO';
+
+export interface TicketObservation {
+  uid: string;
+  role: string;
+  text: string;
+  timestamp: number;
+}
 
 export interface Ticket {
   id: string;
@@ -29,15 +36,52 @@ export interface Ticket {
     updatedAt: number;
   };
   extraFields?: Record<string, string | string[]>;
+  assignedGestorIds?: string[];
+  /** Correos de administradores que reciben copia de los correos de este ticket. */
+  notifyAdminEmails?: string[];
+  observations?: TicketObservation[];
 }
+
+export type ActivityHistoryType = 'STATUS_CHANGE' | 'FIELD_UPDATE';
 
 export interface StatusHistoryEntry {
   id: string;
+  /** Ausente en registros antiguos: se asume 'STATUS_CHANGE'. */
+  type?: ActivityHistoryType;
   previousStatus?: TicketStatus;
-  newStatus: TicketStatus;
-  changedBy?: { uid?: string; role?: string };
+  newStatus?: TicketStatus;
+  // Solo para type === 'FIELD_UPDATE'
+  fieldKey?: string;
+  fieldLabel?: string;
+  previousValue?: string;
+  newValue?: string;
+  changedBy?: { uid?: string; role?: string; email?: string };
   comments?: string;
   timestamp: number;
+  scheduledDate?: string;
+}
+
+/**
+ * Entrada del historial de actividad del detalle de ticket. Unifica cambios de
+ * estado (`kind: 'status'`) y actualizaciones de campos (`kind: 'field'`).
+ */
+export interface TimelineEntry {
+  kind: 'status' | 'field';
+  status?: TicketStatus;
+  fieldLabel?: string;
+  previousValue?: string;
+  newValue?: string;
+  timestamp?: number;
+  comments?: string;
+  changedBy?: { uid?: string; role?: string; email?: string };
+  scheduledDate?: number | string;
+}
+
+export type ComplianceLevel = 'A_TIEMPO' | 'ATENCION_PRIORITARIA' | 'FUERA_DE_TIEMPO';
+
+export interface ComplianceLimits {
+  aTiempoMaxDias: number;
+  atencionPrioritariaMaxDias: number;
 }
 
 export type FieldType = 'string' | 'numeric' | 'date' | 'photo' | 'video' | 'boolean' | 'list';
@@ -48,6 +92,8 @@ export interface BotMessages {
   ticketCreated: string;
   ticketDeleted: string;
   statusChanged: string;
+  programadoMessage: string;
+  reprogramadoMessage: string;
   reparadoMessage: string;
   noTickets: string;
   invalidField: string;
@@ -67,6 +113,7 @@ export interface BotMessages {
 
 export interface BotSettings {
   sessionTimeoutHours: number;
+  compliance?: ComplianceLimits;
 }
 
 export interface BotField {
@@ -90,6 +137,9 @@ export interface SystemFieldConfig {
   key: string;
   label: string;
   visible: boolean;
+  // Orden unificado compartido con los BotField (define el orden de columnas
+  // en la tabla de tickets). Ausente en documentos guardados antes de unificar.
+  order?: number;
 }
 
 export interface StandardField {
@@ -98,6 +148,24 @@ export interface StandardField {
   type: FieldType;
   source: FieldSource;
   required: boolean;
+}
+
+export type EmailEvent = 'created' | 'statusChanged';
+
+export interface EmailTemplate {
+  subject: string;
+  body: string;
+}
+
+export interface EmailConfig {
+  templates: Record<EmailEvent, EmailTemplate>;
+}
+
+export interface RecipientOption {
+  id: string;
+  email: string;
+  name: string;
+  type: 'admin' | 'gestor';
 }
 
 export interface Host {

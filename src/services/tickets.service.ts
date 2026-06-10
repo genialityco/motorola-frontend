@@ -1,4 +1,4 @@
-import { TicketStatus } from '@/types';
+import { TicketStatus, RecipientOption } from '@/types';
 import { apiClient } from './api.client';
 
 export interface ImportedTicketResult {
@@ -18,8 +18,8 @@ export interface ImportResult {
 }
 
 export const ticketsService = {
-  transition: (ticketId: string, newStatus: TicketStatus, comments = 'Transición desde el Dashboard Web') =>
-    apiClient.post(`/api/tickets/${ticketId}/transition`, { newStatus, comments }),
+  transition: (ticketId: string, newStatus: TicketStatus, comments = '', scheduledDate?: string) =>
+    apiClient.post(`/api/tickets/${ticketId}/transition`, { newStatus, comments, ...(scheduledDate ? { scheduledDate } : {}) }),
 
   deletePhoto: (ticketId: string, fieldKey: string, idx: number) =>
     apiClient.delete(`/api/tickets/${ticketId}/photos/${fieldKey}/${idx}`),
@@ -38,4 +38,12 @@ export const ticketsService = {
     formData.append('file', file);
     return apiClient.postForm<ImportResult>('/api/tickets/import', formData);
   },
+
+  addObservation: (ticketId: string, text: string) =>
+    apiClient.post(`/api/tickets/${ticketId}/observations`, { text }),
+
+  listAdmins: () => apiClient.get<RecipientOption[]>('/api/tickets/admins'),
+
+  updateNotifyAdmins: (ticketId: string, emails: string[]) =>
+    apiClient.patch(`/api/tickets/${ticketId}/notify-admins`, { emails }),
 };
