@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MultiSelect, Title, Text, Stack } from '@mantine/core';
+import { TagsInput, Title, Text, Stack } from '@mantine/core';
 import { RecipientOption } from '@/types';
 import { ticketsService } from '@/services/tickets.service';
 import { useAppToast } from '@/components/toast-provider';
@@ -11,10 +11,13 @@ interface Props {
   value?: string[];
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /**
- * Selector de administradores que reciben copia de los correos de este ticket.
- * Los gestores asignados siempre reciben los correos; aquí se eligen los admins
- * adicionales a los que se les enviará copia.
+ * Destinatarios de copia de los correos de este ticket. El gestor puede elegir
+ * administradores de la lista (sugerencias) o escribir cualquier correo libre
+ * que no esté en la lista de admins/gestores. Los gestores asignados siempre
+ * reciben los correos; estos son copias adicionales.
  */
 export function AdminRecipients({ ticketId, value }: Props) {
   const { showToast } = useAppToast();
@@ -31,12 +34,11 @@ export function AdminRecipients({ ticketId, value }: Props) {
     setSelected(value ?? []);
   }, [value]);
 
-  const handleChange = async (emails: string[]) => {
-    setSelected(emails);
+  const persist = async (emails: string[]) => {
     setSaving(true);
     try {
       await ticketsService.updateNotifyAdmins(ticketId, emails);
-      showToast({ type: 'success', title: 'Destinatarios actualizados', message: 'Se guardaron los administradores con copia.' });
+      showToast({ type: 'success', title: 'Destinatarios actualizados', message: 'Se guardaron los correos con copia.' });
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'No se pudo guardar.';
       showToast({ type: 'error', title: 'Error', message: msg });
@@ -46,21 +48,34 @@ export function AdminRecipients({ ticketId, value }: Props) {
     }
   };
 
+  const handleChange = (next: string[]) => {
+    const normalized = next.map((e) => e.trim()).filter(Boolean);
+    // Validar solo lo recién agregado (las sugerencias de admins ya son válidas).
+    const added = normalized.filter((e) => !selected.includes(e));
+    const invalid = added.filter((e) => !EMAIL_RE.test(e));
+    if (invalid.length > 0) {
+      showToast({ type: 'error', title: 'Correo inválido', message: `No es un correo válido: ${invalid.join(', ')}` });
+    }
+    const valid = [...new Set(normalized.filter((e) => !invalid.includes(e)))];
+    setSelected(valid);
+    void persist(valid);
+  };
+
   return (
     <Stack gap={4} mb="xl">
       <Title order={4} mb={2}>Admin destinatario</Title>
       <Text size="xs" c="dimmed">
-        Administradores que recibirán copia de los correos de este ticket. Los gestores asignados siempre reciben los correos.
+        Correos que recibirán copia de los correos de este ticket. Elige un administrador de la lista o
+        escribe cualquier correo y presiona Enter. Los gestores asignados siempre reciben los correos.
       </Text>
-      <MultiSelect
-        placeholder={selected.length === 0 ? 'Selecciona administradores…' : undefined}
+      <TagsInput
+        placeholder={selected.length === 0 ? 'Selecciona o escribe un correo…' : undefined}
         data={admins.map((a) => ({ value: a.email, label: `${a.name} (${a.email})` }))}
         value={selected}
         onChange={handleChange}
         disabled={saving}
-        searchable
         clearable
-        nothingFoundMessage="Sin administradores"
+        splitChars={[',', ';', ' ']}
         maxDropdownHeight={240}
       />
     </Stack>
