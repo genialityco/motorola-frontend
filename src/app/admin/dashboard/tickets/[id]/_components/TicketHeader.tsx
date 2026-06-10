@@ -2,8 +2,9 @@
 
 import { Group, Title, Badge, Alert, Stack, Text, Button } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
-import { BotField, Ticket, TimelineEntry } from '@/types';
+import { BotField, BotSettings, Ticket, TimelineEntry } from '@/types';
 import { STATUS_COLORS, STATUS_LABELS } from '../_constants';
+import { COMPLIANCE_COLORS, COMPLIANCE_LABELS, getComplianceLevel } from '@/app/admin/dashboard/_constants';
 import { downloadTicketReport } from '../_report';
 
 interface Props {
@@ -12,10 +13,13 @@ interface Props {
   errorStatus: string | null;
   onClearError: () => void;
   configFields: BotField[];
+  configSettings: BotSettings;
   timeline: TimelineEntry[];
 }
 
-export function TicketHeader({ ticket, hostName, errorStatus, onClearError, configFields, timeline }: Props) {
+export function TicketHeader({ ticket, hostName, errorStatus, onClearError, configFields, configSettings, timeline }: Props) {
+  const complianceLevel = getComplianceLevel(ticket.timestamps?.createdAt, configSettings);
+
   return (
     <>
       <Group justify="space-between" mb="lg">
@@ -35,6 +39,13 @@ export function TicketHeader({ ticket, hostName, errorStatus, onClearError, conf
             {STATUS_LABELS[ticket.status] ?? ticket.status}
           </Badge>
         </Group>
+      </Group>
+
+      <Group justify="flex-end" gap="xs" mb="lg">
+        <Text fw={700} size="sm" c="dimmed">Alerta de cumplimiento:</Text>
+        <Badge size="lg" color={COMPLIANCE_COLORS[complianceLevel]}>
+          {COMPLIANCE_LABELS[complianceLevel]}
+        </Badge>
       </Group>
 
       {errorStatus && (

@@ -35,7 +35,7 @@ export default function TicketDetailPage() {
     requestFieldImprovement,
   } = useTicketDetail(ticketId);
 
-  const { configFields } = useBotConfig();
+  const { configFields, configSettings } = useBotConfig();
 
   if (!ticket) return <Loader color="blue" type="bars" mt="xl" />;
 
@@ -47,6 +47,7 @@ export default function TicketDetailPage() {
         errorStatus={errorStatus}
         onClearError={() => setErrorStatus(null)}
         configFields={configFields}
+        configSettings={configSettings}
         timeline={timeline}
       />
 
