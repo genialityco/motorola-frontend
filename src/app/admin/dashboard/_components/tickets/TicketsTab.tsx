@@ -7,7 +7,7 @@ import { useTicketsFilter } from '../../_hooks/useTicketsFilter';
 import { ACTIVE_TICKET_STATUSES } from '../../_constants';
 import { exportTicketsToExcel, getFieldValue } from '../../_utils';
 import { generateTicketsReport } from '../../_reportSummary';
-import { TicketsTable } from './TicketsTable';
+import { TicketsTable, TicketColumn } from './TicketsTable';
 import { DateFilterModal } from './DateFilterModal';
 import { ImportTicketsModal } from '@/components/ImportTicketsModal';
 
@@ -28,12 +28,16 @@ export function TicketsTab({
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
 
-  const visibleSysFields = useMemo(
-    () => systemFields.filter(
-      (sf) => sf.visible !== false && (sf.key !== 'alertaCumplimiento' || filter.ticketSubTab === 'activos'),
-    ),
-    [systemFields, filter.ticketSubTab],
-  );
+  // Columnas en orden unificado: campos del sistema visibles + campos
+  // personalizados visibles, ordenados por su `order` compartido.
+  const columns = useMemo<TicketColumn[]>(() => {
+    const sysCols = systemFields
+      .filter((sf) => sf.visible !== false && (sf.key !== 'alertaCumplimiento' || filter.ticketSubTab === 'activos'))
+      .map((sf) => ({ kind: 'system' as const, key: sf.key, order: sf.order ?? 0, sys: sf }));
+    const customCols = visibleFields
+      .map((f) => ({ kind: 'custom' as const, key: f.key, order: f.order ?? 0, field: f }));
+    return [...sysCols, ...customCols].sort((a, b) => a.order - b.order);
+  }, [systemFields, visibleFields, filter.ticketSubTab]);
 
   const hostsMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -110,8 +114,7 @@ export function TicketsTab({
 
       <TicketsTable
         filter={filter}
-        visibleSysFields={visibleSysFields}
-        visibleFields={visibleFields}
+        columns={columns}
         uniqueFieldValues={uniqueFieldValues}
         configSettings={configSettings}
         hostsMap={hostsMap}

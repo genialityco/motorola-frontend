@@ -2,8 +2,8 @@
 
 import { useRef } from 'react';
 import {
-  Stack, Text, Switch, Button, Table, Checkbox, Badge, Group, Loader,
-  Tabs, TextInput, Textarea, Tooltip, Divider, Alert,
+  Stack, Text, Button, Group, Loader,
+  Tabs, TextInput, Textarea, Tooltip,
 } from '@mantine/core';
 import { BotField, EmailEvent } from '@/types';
 import { useEmailConfig } from '@/hooks/useEmailConfig';
@@ -38,10 +38,7 @@ const EVENT_LABELS: Record<EmailEvent, string> = {
 };
 
 export function EmailPanel({ configFields }: Props) {
-  const {
-    config, options, loading, saving,
-    recipientFor, toggleRecipientEvent, setNotifyAssignedGestores, setTemplate, save,
-  } = useEmailConfig();
+  const { config, loading, saving, setTemplate, save } = useEmailConfig();
 
   // Custom ticket fields usable as variables (excludes media fields, which can't go in text).
   const ticketFieldVars = configFields
@@ -127,68 +124,10 @@ export function EmailPanel({ configFields }: Props) {
   return (
     <Stack gap="lg">
       <Text size="sm" c="dimmed">
-        Configura quién recibe los correos de notificación y edita las plantillas de cada evento.
+        Los correos se envían automáticamente a los gestores asignados a cada ticket. Para enviar copia
+        a un administrador, selecciónalo en el campo <b>Admin destinatario</b> dentro del ticket. Aquí solo
+        editas las plantillas de cada evento.
       </Text>
-
-      {/* ── Destinatarios ───────────────────────────────────────────── */}
-      <div>
-        <Text fw={700} mb="xs">Destinatarios</Text>
-        <Switch
-          label="Notificar automáticamente a los gestores asignados al ticket"
-          checked={config.notifyAssignedGestores}
-          onChange={(e) => setNotifyAssignedGestores(e.currentTarget.checked)}
-          mb="md"
-        />
-
-        {options.length === 0 ? (
-          <Alert color="gray">No hay administradores ni gestores disponibles para seleccionar.</Alert>
-        ) : (
-          <Table striped withTableBorder>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>Usuario</Table.Th>
-                <Table.Th>Tipo</Table.Th>
-                <Table.Th ta="center">Ticket creado</Table.Th>
-                <Table.Th ta="center">Cambio de estado</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {options.map((opt) => {
-                const rec = recipientFor(opt.id);
-                return (
-                  <Table.Tr key={opt.id}>
-                    <Table.Td>
-                      <Text size="sm" fw={500}>{opt.name}</Text>
-                      <Text size="xs" c="dimmed">{opt.email}</Text>
-                    </Table.Td>
-                    <Table.Td>
-                      <Badge color={opt.type === 'admin' ? 'grape' : 'teal'} variant="light">
-                        {opt.type === 'admin' ? 'Admin' : 'Gestor'}
-                      </Badge>
-                    </Table.Td>
-                    <Table.Td ta="center">
-                      <Checkbox
-                        checked={!!rec?.events.created}
-                        onChange={() => toggleRecipientEvent(opt, 'created')}
-                        style={{ display: 'inline-block' }}
-                      />
-                    </Table.Td>
-                    <Table.Td ta="center">
-                      <Checkbox
-                        checked={!!rec?.events.statusChanged}
-                        onChange={() => toggleRecipientEvent(opt, 'statusChanged')}
-                        style={{ display: 'inline-block' }}
-                      />
-                    </Table.Td>
-                  </Table.Tr>
-                );
-              })}
-            </Table.Tbody>
-          </Table>
-        )}
-      </div>
-
-      <Divider />
 
       {/* ── Plantillas ──────────────────────────────────────────────── */}
       <div>

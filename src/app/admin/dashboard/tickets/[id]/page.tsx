@@ -7,6 +7,7 @@ import { useBotConfig } from '@/hooks/useBotConfig';
 import { TicketHeader } from './_components/TicketHeader';
 import { TicketFields } from './_components/TicketFields';
 import { StatusHistory } from './_components/StatusHistory';
+import { AdminRecipients } from './_components/AdminRecipients';
 import { StatusChanger } from './_components/StatusChanger';
 import { ScheduledDateModal } from './_components/ScheduledDateModal';
 import { RequestFieldModal } from './_components/RequestFieldModal';
@@ -65,9 +66,12 @@ export default function TicketDetailPage() {
 
       <StatusHistory
         timeline={timeline}
+        lastUpdated={ticket.timestamps?.updatedAt}
         expanded={historyExpanded}
         onToggle={() => setHistoryExpanded(!historyExpanded)}
       />
+
+      <AdminRecipients ticketId={ticket.id} value={ticket.notifyAdminEmails} />
 
       <StatusChanger
         currentStatus={ticket.status}

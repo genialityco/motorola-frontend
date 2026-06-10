@@ -43,9 +43,9 @@ export const DEFAULT_BOT_FIELDS: BotField[] = [
 ];
 
 export const SYSTEM_FIELDS_DEFAULT: SystemFieldConfig[] = [
-  { key: 'ticketNumber', label: 'Ticket #', visible: true },
-  { key: 'createdAt', label: 'Creación', visible: true },
-  { key: 'estado', label: 'Estado', visible: true },
-  { key: 'alertaCumplimiento', label: 'Alerta', visible: true },
-  { key: 'reporter', label: 'Reportado Por', visible: true },
+  { key: 'ticketNumber', label: 'Ticket #', visible: true, order: 0 },
+  { key: 'createdAt', label: 'Creación', visible: true, order: 1 },
+  { key: 'estado', label: 'Estado', visible: true, order: 2 },
+  { key: 'alertaCumplimiento', label: 'Alerta', visible: true, order: 3 },
+  { key: 'reporter', label: 'Reportado Por', visible: true, order: 4 },
 ];

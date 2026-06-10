@@ -1,11 +1,5 @@
-import { BotField, Ticket, TicketStatus } from '@/types';
+import { BotField, Ticket, TimelineEntry } from '@/types';
 import { STATUS_LABELS, getNestedFieldValue } from './_constants';
-
-interface TimelineEntry {
-  status: TicketStatus;
-  timestamp?: number;
-  scheduledDate?: number | string;
-}
 
 function esc(value: unknown): string {
   return String(value ?? '')
@@ -75,8 +69,16 @@ function buildReportHtml({ ticket, configFields, hostName, timeline }: BuildArgs
   const timelineHtml = timeline.length
     ? timeline
         .map((e) => {
+          if (e.kind === 'field') {
+            const change =
+              e.previousValue !== undefined || e.newValue !== undefined
+                ? ` (${esc(e.previousValue ?? '—')} → ${esc(e.newValue ?? '—')})`
+                : '';
+            const label = e.fieldLabel ? `: ${esc(e.fieldLabel)}` : '';
+            return `<li><strong>Campo actualizado${label}</strong>${change} — ${esc(formatDate(e.timestamp))}</li>`;
+          }
           const sched = e.scheduledDate ? ` · Programado: ${esc(formatDate(e.scheduledDate))}` : '';
-          return `<li><strong>${esc(STATUS_LABELS[e.status] ?? e.status)}</strong> — ${esc(formatDate(e.timestamp))}${sched}</li>`;
+          return `<li><strong>${esc(STATUS_LABELS[e.status!] ?? e.status)}</strong> — ${esc(formatDate(e.timestamp))}${sched}</li>`;
         })
         .join('')
     : '<li class="muted">Sin registros.</li>';
@@ -138,7 +140,7 @@ function buildReportHtml({ ticket, configFields, hostName, timeline }: BuildArgs
 
   ${observationsHtml ? `<h2>Observaciones</h2><ul>${observationsHtml}</ul>` : ''}
 
-  <h2>Historial de estados</h2>
+  <h2>Historial de actividad</h2>
   <ul>${timelineHtml}</ul>
 
   <script>

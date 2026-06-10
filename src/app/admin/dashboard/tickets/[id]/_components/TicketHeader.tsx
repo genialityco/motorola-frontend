@@ -2,15 +2,9 @@
 
 import { Group, Title, Badge, Alert, Stack, Text, Button } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
-import { BotField, Ticket, TicketStatus } from '@/types';
+import { BotField, Ticket, TimelineEntry } from '@/types';
 import { STATUS_COLORS, STATUS_LABELS } from '../_constants';
 import { downloadTicketReport } from '../_report';
-
-interface TimelineEntry {
-  status: TicketStatus;
-  timestamp?: number;
-  scheduledDate?: number | string;
-}
 
 interface Props {
   ticket: Ticket;

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { AppShell, Burger, Group, Title, Text, Badge, Button, NavLink, Alert } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconDashboard, IconMessage, IconShieldLock } from '@tabler/icons-react';
+import { IconDashboard, IconMessage, IconMail, IconShieldLock } from '@tabler/icons-react';
 import Link from 'next/link';
 import { signOut, User } from 'firebase/auth';
 import { auth } from '../../../lib/firebase';
@@ -61,6 +61,14 @@ export function AdminShell({ user, userRole, onRoleRefresh, children }: Props) {
             href="/admin/dashboard/chats"
             label="Chats WhatsApp"
             leftSection={<IconMessage size="1rem" stroke={1.5} />}
+          />
+        )}
+        {!isGestor && (
+          <NavLink
+            component={Link}
+            href="/admin/dashboard/correo"
+            label="Correo"
+            leftSection={<IconMail size="1rem" stroke={1.5} />}
           />
         )}
         {!userRole && (

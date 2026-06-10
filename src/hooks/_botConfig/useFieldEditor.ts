@@ -130,7 +130,9 @@ export function useFieldEditor(configFields: BotField[], setConfigFields: Fields
       label: newFieldLabel.trim(),
       question: newFieldQuestion.trim(),
       placeholder: newFieldPlaceholder.trim(),
-      order: configFields.length,
+      // Orden temporal alto para que aparezca al final de la lista unificada;
+      // se renumera a 0..N-1 al guardar/recargar.
+      order: Date.now(),
       normalize: newFieldType === 'string',
       type: newFieldType,
       source: newFieldSource,

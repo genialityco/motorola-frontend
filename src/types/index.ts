@@ -37,17 +37,44 @@ export interface Ticket {
   };
   extraFields?: Record<string, string | string[]>;
   assignedGestorIds?: string[];
+  /** Correos de administradores que reciben copia de los correos de este ticket. */
+  notifyAdminEmails?: string[];
   observations?: TicketObservation[];
 }
 
+export type ActivityHistoryType = 'STATUS_CHANGE' | 'FIELD_UPDATE';
+
 export interface StatusHistoryEntry {
   id: string;
+  /** Ausente en registros antiguos: se asume 'STATUS_CHANGE'. */
+  type?: ActivityHistoryType;
   previousStatus?: TicketStatus;
-  newStatus: TicketStatus;
-  changedBy?: { uid?: string; role?: string };
+  newStatus?: TicketStatus;
+  // Solo para type === 'FIELD_UPDATE'
+  fieldKey?: string;
+  fieldLabel?: string;
+  previousValue?: string;
+  newValue?: string;
+  changedBy?: { uid?: string; role?: string; email?: string };
   comments?: string;
   timestamp: number;
   scheduledDate?: string;
+}
+
+/**
+ * Entrada del historial de actividad del detalle de ticket. Unifica cambios de
+ * estado (`kind: 'status'`) y actualizaciones de campos (`kind: 'field'`).
+ */
+export interface TimelineEntry {
+  kind: 'status' | 'field';
+  status?: TicketStatus;
+  fieldLabel?: string;
+  previousValue?: string;
+  newValue?: string;
+  timestamp?: number;
+  comments?: string;
+  changedBy?: { uid?: string; role?: string; email?: string };
+  scheduledDate?: number | string;
 }
 
 export type ComplianceLevel = 'A_TIEMPO' | 'ATENCION_PRIORITARIA' | 'FUERA_DE_TIEMPO';
@@ -110,6 +137,9 @@ export interface SystemFieldConfig {
   key: string;
   label: string;
   visible: boolean;
+  // Orden unificado compartido con los BotField (define el orden de columnas
+  // en la tabla de tickets). Ausente en documentos guardados antes de unificar.
+  order?: number;
 }
 
 export interface StandardField {
@@ -122,22 +152,12 @@ export interface StandardField {
 
 export type EmailEvent = 'created' | 'statusChanged';
 
-export interface EmailRecipient {
-  id: string;
-  email: string;
-  name: string;
-  type: 'admin' | 'gestor';
-  events: Record<EmailEvent, boolean>;
-}
-
 export interface EmailTemplate {
   subject: string;
   body: string;
 }
 
 export interface EmailConfig {
-  notifyAssignedGestores: boolean;
-  recipients: EmailRecipient[];
   templates: Record<EmailEvent, EmailTemplate>;
 }
 

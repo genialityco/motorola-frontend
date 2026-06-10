@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { collection, doc, getDoc, onSnapshot, orderBy, query } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
-import { Ticket, TicketStatus, StatusHistoryEntry } from '@/types';
+import { Ticket, StatusHistoryEntry, TimelineEntry } from '@/types';
 
 export function useTicketData(ticketId: string) {
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -56,24 +56,38 @@ export function useTicketData(ticketId: string) {
     return () => unsub();
   }, [ticketId]);
 
-  const timeline = useMemo(() => {
+  const timeline = useMemo<TimelineEntry[]>(() => {
     if (!ticket) return [];
-    const initial = {
-      status: 'REPORTADO' as TicketStatus,
+    const initial: TimelineEntry = {
+      kind: 'status',
+      status: 'REPORTADO',
       timestamp: ticket.timestamps?.createdAt ? Number(ticket.timestamps.createdAt) : 0,
       comments: 'Ticket creado',
-      changedBy: undefined as StatusHistoryEntry['changedBy'],
-      scheduledDate: undefined as string | undefined,
+      changedBy: undefined,
+      scheduledDate: undefined,
     };
     return [
       initial,
-      ...history.map((e) => ({
-        status: e.newStatus,
-        timestamp: e.timestamp,
-        comments: e.comments,
-        changedBy: e.changedBy,
-        scheduledDate: e.scheduledDate,
-      })),
+      ...history.map((e): TimelineEntry =>
+        e.type === 'FIELD_UPDATE'
+          ? {
+              kind: 'field',
+              fieldLabel: e.fieldLabel,
+              previousValue: e.previousValue,
+              newValue: e.newValue,
+              timestamp: e.timestamp,
+              comments: e.comments,
+              changedBy: e.changedBy,
+            }
+          : {
+              kind: 'status',
+              status: e.newStatus,
+              timestamp: e.timestamp,
+              comments: e.comments,
+              changedBy: e.changedBy,
+              scheduledDate: e.scheduledDate,
+            },
+      ),
     ];
   }, [ticket, history]);
 

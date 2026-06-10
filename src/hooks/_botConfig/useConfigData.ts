@@ -8,6 +8,22 @@ import { configService } from '@/services/config.service';
 import { useAppToast } from '@/components/toast-provider';
 import { DEFAULT_BOT_MESSAGES, DEFAULT_BOT_SETTINGS, DEFAULT_BOT_FIELDS, SYSTEM_FIELDS_DEFAULT } from './defaults';
 
+type Combined =
+  | { kind: 'sys'; order: number; f: SystemFieldConfig }
+  | { kind: 'cus'; order: number; f: BotField };
+
+// Renumera la lista combinada a un espacio de orden 0..N-1 y la divide de vuelta
+// en campos del sistema y personalizados conservando su posición relativa.
+function renumber(combined: Combined[]) {
+  const sysOrdered: SystemFieldConfig[] = [];
+  const customOrdered: BotField[] = [];
+  combined.forEach((item, i) => {
+    if (item.kind === 'sys') sysOrdered.push({ ...item.f, order: i });
+    else customOrdered.push({ ...item.f, order: i });
+  });
+  return { sysOrdered, customOrdered };
+}
+
 export function useConfigData() {
   const { showToast } = useAppToast();
   const [configMessages, setConfigMessages] = useState<BotMessages>(DEFAULT_BOT_MESSAGES);
@@ -54,26 +70,53 @@ export function useConfigData() {
       doc(db, 'bot_config', 'ticket_fields'),
       (snap) => {
         const data = snap.exists() ? snap.data() : {};
-        const fields = data?.fields as BotField[] | undefined;
-        let toUse: BotField[];
-        if (fields && fields.length > 0) {
-          const savedKeys = new Set(fields.map((f) => f.key));
-          const newDefaults = DEFAULT_BOT_FIELDS.filter((df) => !savedKeys.has(df.key));
-          toUse = [...fields, ...newDefaults];
-        } else {
-          toUse = DEFAULT_BOT_FIELDS;
-        }
-        setConfigFields([...toUse].sort((a, b) => a.order - b.order));
-
+        const savedFields = data?.fields as BotField[] | undefined;
         const savedSysFields = data?.systemFields as SystemFieldConfig[] | undefined;
+
+        // Campos personalizados: merge con defaults para incluir nuevos campos.
+        let customFields: BotField[];
+        if (savedFields && savedFields.length > 0) {
+          const savedKeys = new Set(savedFields.map((f) => f.key));
+          const newDefaults = DEFAULT_BOT_FIELDS.filter((df) => !savedKeys.has(df.key));
+          customFields = [...savedFields, ...newDefaults];
+        } else {
+          customFields = DEFAULT_BOT_FIELDS;
+        }
+
+        // Campos del sistema: merge con defaults para incluir nuevas columnas.
+        let sysFields: SystemFieldConfig[];
         if (savedSysFields && savedSysFields.length > 0) {
           const savedKeys = new Set(savedSysFields.map((f) => f.key));
-          const merged = [
-            ...savedSysFields,
-            ...SYSTEM_FIELDS_DEFAULT.filter((f) => !savedKeys.has(f.key)),
-          ];
-          setSystemFields(merged);
+          sysFields = [...savedSysFields, ...SYSTEM_FIELDS_DEFAULT.filter((f) => !savedKeys.has(f.key))];
+        } else {
+          sysFields = SYSTEM_FIELDS_DEFAULT;
         }
+
+        // ¿El documento ya tiene orden unificado? Solo lo está si los campos del
+        // sistema guardados traen `order`. Si no (doc antiguo o sin systemFields),
+        // mostramos primero los del sistema y después los personalizados.
+        const isUnified =
+          !!savedSysFields &&
+          savedSysFields.length > 0 &&
+          savedSysFields.every((f) => typeof f.order === 'number');
+
+        let combined: Combined[];
+        if (isUnified) {
+          combined = [
+            ...sysFields.map((f) => ({ kind: 'sys' as const, order: f.order ?? 0, f })),
+            ...customFields.map((f) => ({ kind: 'cus' as const, order: f.order ?? 0, f })),
+          ].sort((a, b) => a.order - b.order);
+        } else {
+          const sortedCustom = [...customFields].sort((a, b) => a.order - b.order);
+          combined = [
+            ...sysFields.map((f) => ({ kind: 'sys' as const, order: 0, f })),
+            ...sortedCustom.map((f) => ({ kind: 'cus' as const, order: 0, f })),
+          ];
+        }
+
+        const { sysOrdered, customOrdered } = renumber(combined);
+        setConfigFields(customOrdered);
+        setSystemFields(sysOrdered);
       },
       () => {},
     );
@@ -109,10 +152,13 @@ export function useConfigData() {
   const saveFields = async () => {
     setSavingFields(true);
     try {
-      await configService.saveFields(
-        configFields.map((f, i) => ({ ...f, order: i })),
-        systemFields,
-      );
+      // Normaliza el orden unificado (sistema + personalizados) antes de guardar.
+      const combined: Combined[] = [
+        ...systemFields.map((f) => ({ kind: 'sys' as const, order: f.order ?? 0, f })),
+        ...configFields.map((f) => ({ kind: 'cus' as const, order: f.order ?? 0, f })),
+      ].sort((a, b) => a.order - b.order);
+      const { sysOrdered, customOrdered } = renumber(combined);
+      await configService.saveFields(customOrdered, sysOrdered);
       showToast({ type: 'success', title: 'Campos guardados', message: 'Los campos del ticket se actualizaron correctamente.' });
     } catch (e) {
       console.error('Error guardando campos:', e);

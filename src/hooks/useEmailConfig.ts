@@ -1,13 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { EmailConfig, EmailEvent, EmailRecipient, RecipientOption } from '@/types';
+import { EmailConfig, EmailEvent } from '@/types';
 import { emailService } from '@/services/email.service';
 import { useAppToast } from '@/components/toast-provider';
 
 export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
-  notifyAssignedGestores: true,
-  recipients: [],
   templates: {
     created: {
       subject: 'Nuevo ticket creado - {ticketNumber}',
@@ -31,19 +29,14 @@ export const DEFAULT_EMAIL_CONFIG: EmailConfig = {
 export function useEmailConfig() {
   const { showToast } = useAppToast();
   const [config, setConfig] = useState<EmailConfig>(DEFAULT_EMAIL_CONFIG);
-  const [options, setOptions] = useState<RecipientOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [cfg, opts] = await Promise.all([
-        emailService.getConfig(),
-        emailService.listRecipientOptions(),
-      ]);
+      const cfg = await emailService.getConfig();
       setConfig(cfg);
-      setOptions(opts);
     } catch {
       showToast({ type: 'error', title: 'Error', message: 'No se pudo cargar la configuración de correo.' });
     } finally {
@@ -52,48 +45,6 @@ export function useEmailConfig() {
   }, [showToast]);
 
   useEffect(() => { load(); }, [load]);
-
-  /** Returns the configured recipient entry for an option, if it exists. */
-  const recipientFor = (optionId: string): EmailRecipient | undefined =>
-    config.recipients.find((r) => r.id === optionId);
-
-  /** Toggles whether an option receives a given event, creating/removing the recipient entry as needed. */
-  const toggleRecipientEvent = (option: RecipientOption, event: EmailEvent) => {
-    setConfig((prev) => {
-      const existing = prev.recipients.find((r) => r.id === option.id);
-      let recipients: EmailRecipient[];
-      if (existing) {
-        const updated: EmailRecipient = {
-          ...existing,
-          email: option.email,
-          name: option.name,
-          type: option.type,
-          events: { ...existing.events, [event]: !existing.events[event] },
-        };
-        // Drop the recipient entirely if it no longer receives any event.
-        if (!updated.events.created && !updated.events.statusChanged) {
-          recipients = prev.recipients.filter((r) => r.id !== option.id);
-        } else {
-          recipients = prev.recipients.map((r) => (r.id === option.id ? updated : r));
-        }
-      } else {
-        recipients = [
-          ...prev.recipients,
-          {
-            id: option.id,
-            email: option.email,
-            name: option.name,
-            type: option.type,
-            events: { created: event === 'created', statusChanged: event === 'statusChanged' },
-          },
-        ];
-      }
-      return { ...prev, recipients };
-    });
-  };
-
-  const setNotifyAssignedGestores = (value: boolean) =>
-    setConfig((prev) => ({ ...prev, notifyAssignedGestores: value }));
 
   const setTemplate = (event: EmailEvent, field: 'subject' | 'body', value: string) =>
     setConfig((prev) => ({
@@ -115,9 +66,5 @@ export function useEmailConfig() {
     }
   };
 
-  return {
-    config, setConfig, options, loading, saving,
-    recipientFor, toggleRecipientEvent, setNotifyAssignedGestores, setTemplate,
-    save, reload: load,
-  };
+  return { config, setConfig, loading, saving, setTemplate, save, reload: load };
 }
