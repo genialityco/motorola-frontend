@@ -5,7 +5,7 @@ import { IconFilter } from '@tabler/icons-react';
 import { SystemFieldConfig, BotSettings, ComplianceLevel, Ticket } from '@/types';
 import { SortIcon } from './SortIcon';
 import {
-  ALL_STATUSES, STATUS_COLORS, STATUS_LABELS,
+  ALL_STATUSES, STATUS_LABELS,
   COMPLIANCE_COLORS, COMPLIANCE_LABELS, getComplianceLevel,
 } from '../../_constants';
 
@@ -144,9 +144,9 @@ export function renderSystemCell({ sysField: sf, ticket, configSettings, hostsMa
     case 'estado':
       return (
         <Table.Td key={sf.key}>
-          <Badge size="sm" color={STATUS_COLORS[ticket.status] || 'gray'}>
+          <Text size="sm" fw={500}>
             {STATUS_LABELS[ticket.status] ?? ticket.status}
-          </Badge>
+          </Text>
         </Table.Td>
       );
     case 'alertaCumplimiento': {
