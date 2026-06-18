@@ -37,7 +37,8 @@ export function ScheduledDateModal({
             error={error}
           />
           <TextInput
-            type="time" label="Hora programada" required
+            type="time" label="Hora programada (24 h)" required
+            lang="en-GB"
             value={time} onChange={(e) => setTime(e.currentTarget.value)}
           />
         </Group>

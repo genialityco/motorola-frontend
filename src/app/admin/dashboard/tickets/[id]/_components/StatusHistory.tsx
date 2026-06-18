@@ -85,7 +85,10 @@ export function StatusHistory({ timeline, lastUpdated, expanded, onToggle }: Pro
                   const d = new Date(entry.scheduledDate);
                   return !isNaN(d.getTime()) ? (
                     <Text size="xs" c="cyan">
-                      Fecha programada: {d.toLocaleString('es-CO')}
+                      Fecha programada: {d.toLocaleString('es-CO', {
+                        day: '2-digit', month: '2-digit', year: 'numeric',
+                        hour: '2-digit', minute: '2-digit', hour12: false,
+                      })}
                     </Text>
                   ) : null;
                 })()}
