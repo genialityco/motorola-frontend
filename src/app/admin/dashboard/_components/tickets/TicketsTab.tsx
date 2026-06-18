@@ -57,36 +57,36 @@ export function TicketsTab({
     <>
       <Group justify="space-between" mb="md">
         <Title order={2}>Gestor de Tickets</Title>
-        {isAdmin && (
-          <Group gap="xs">
+        <Group gap="xs">
+          {isAdmin && (
             <Button onClick={() => setImportModalOpen(true)} variant="light" color="blue">
               Importar Tickets
             </Button>
-            <Button onClick={() => exportTicketsToExcel(tickets, configFields, configSettings, hostsMap)} variant="light" color="green">
-              Exportar Tickets
-            </Button>
-            <Button
-              onClick={() => generateTicketsReport({
-                tickets: filter.sorted,
-                configFields,
-                configSettings,
-                hostsMap,
-                filters: {
-                  subTab: filter.ticketSubTab,
-                  fieldFilters: filter.filterFields,
-                  estados: filter.filterEstados,
-                  alerta: filter.filterAlerta,
-                  fechaFrom: filter.filterFechaFrom,
-                  fechaTo: filter.filterFechaTo,
-                },
-              })}
-              variant="light"
-              color="grape"
-            >
-              Generar Informe
-            </Button>
-          </Group>
-        )}
+          )}
+          <Button onClick={() => exportTicketsToExcel(tickets, configFields, configSettings, hostsMap)} variant="light" color="green">
+            Exportar Tickets
+          </Button>
+          <Button
+            onClick={() => generateTicketsReport({
+              tickets: filter.sorted,
+              configFields,
+              configSettings,
+              hostsMap,
+              filters: {
+                subTab: filter.ticketSubTab,
+                fieldFilters: filter.filterFields,
+                estados: filter.filterEstados,
+                alerta: filter.filterAlerta,
+                fechaFrom: filter.filterFechaFrom,
+                fechaTo: filter.filterFechaTo,
+              },
+            })}
+            variant="light"
+            color="grape"
+          >
+            Generar Informe
+          </Button>
+        </Group>
       </Group>
 
       <Tabs value={filter.ticketSubTab} onChange={(v) => { filter.setTicketSubTab(v); filter.setPage(1); }} mb="lg">
