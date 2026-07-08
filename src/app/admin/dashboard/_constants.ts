@@ -76,9 +76,15 @@ export const COMPLIANCE_EXCEL: Record<ComplianceLevel, string> = {
   FUERA_DE_TIEMPO: '🔴 Fuera de tiempo',
 };
 
-export function getComplianceLevel(createdAt: number | undefined, settings: BotSettings): ComplianceLevel {
+export function getComplianceLevel(
+  createdAt: number | undefined,
+  settings: BotSettings,
+  finalizedAt?: number,
+): ComplianceLevel {
   if (!createdAt) return 'A_TIEMPO';
-  const days = Math.floor((Date.now() - createdAt) / 86_400_000);
+  // Ticket finalizado: el semáforo se congela en el instante de finalización.
+  const end = finalizedAt ?? Date.now();
+  const days = Math.floor((end - createdAt) / 86_400_000);
   const aTiempoMax = settings.compliance?.aTiempoMaxDias ?? 7;
   const atencionMax = settings.compliance?.atencionPrioritariaMaxDias ?? 14;
   if (days <= aTiempoMax) return 'A_TIEMPO';

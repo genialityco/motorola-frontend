@@ -28,7 +28,7 @@ export function useTicketsFilter(tickets: Ticket[], configSettings: BotSettings)
         if (vals.length && !vals.includes(getFieldValue(t, key))) return false;
       }
       if (filterEstados.length && !filterEstados.includes(t.status)) return false;
-      if (filterAlerta.length && !filterAlerta.includes(getComplianceLevel(t.timestamps?.createdAt, configSettings))) return false;
+      if (filterAlerta.length && !filterAlerta.includes(getComplianceLevel(t.timestamps?.createdAt, configSettings, t.timestamps?.finalizedAt))) return false;
       if (filterFechaFrom) {
         const from = new Date(filterFechaFrom).getTime();
         if ((t.timestamps?.createdAt || 0) < from) return false;

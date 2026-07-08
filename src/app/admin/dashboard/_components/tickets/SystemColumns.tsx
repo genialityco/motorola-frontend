@@ -150,7 +150,7 @@ export function renderSystemCell({ sysField: sf, ticket, configSettings, hostsMa
         </Table.Td>
       );
     case 'alertaCumplimiento': {
-      const level = getComplianceLevel(ticket.timestamps?.createdAt, configSettings);
+      const level = getComplianceLevel(ticket.timestamps?.createdAt, configSettings, ticket.timestamps?.finalizedAt);
       return (
         <Table.Td key={sf.key}>
           <Badge size="sm" color={COMPLIANCE_COLORS[level]}>{COMPLIANCE_LABELS[level]}</Badge>

@@ -34,6 +34,8 @@ export interface Ticket {
   timestamps: {
     createdAt: number;
     updatedAt: number;
+    /** Instante en que el ticket pasó a FINALIZADO. Congela el semáforo de cumplimiento. */
+    finalizedAt?: number;
   };
   extraFields?: Record<string, string | string[]>;
   assignedGestorIds?: string[];
