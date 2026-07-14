@@ -22,13 +22,14 @@ export function useTicketsFilter(tickets: Ticket[], configSettings: BotSettings)
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
       if (ticketSubTab === 'activos' && !ACTIVE_TICKET_STATUSES.has(t.status)) return false;
-      if (ticketSubTab === 'archivados' && t.status !== 'ARCHIVADO') return false;
+      if (ticketSubTab === 'archivados' && !['ARCHIVADO', 'CANCELADO'].includes(t.status)) return false;
       if (ticketSubTab === 'finalizados' && t.status !== 'FINALIZADO') return false;
+      if (ticketSubTab === 'cancelados' && !['ARCHIVADO', 'CANCELADO'].includes(t.status)) return false;
       for (const [key, vals] of Object.entries(filterFields)) {
         if (vals.length && !vals.includes(getFieldValue(t, key))) return false;
       }
       if (filterEstados.length && !filterEstados.includes(t.status)) return false;
-      if (filterAlerta.length && !filterAlerta.includes(getComplianceLevel(t.timestamps?.createdAt, configSettings, t.timestamps?.finalizedAt))) return false;
+      if (filterAlerta.length && !filterAlerta.includes(getComplianceLevel(t.timestamps, configSettings))) return false;
       if (filterFechaFrom) {
         const from = new Date(filterFechaFrom).getTime();
         if ((t.timestamps?.createdAt || 0) < from) return false;

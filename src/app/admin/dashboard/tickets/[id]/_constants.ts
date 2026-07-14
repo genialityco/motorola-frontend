@@ -6,22 +6,26 @@ export const STATUS_COLORS: Record<TicketStatus, string> = {
   PROGRAMADO: 'cyan',
   REPROGRAMADO: 'orange',
   REPARADO: 'teal',
+  STANDBY: 'yellow',
+  CANCELADO: 'red',
   FINALIZADO: 'green',
   ARCHIVADO: '',
 };
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   REPORTADO: 'Reportado',
-  EN_PROGRAMACION: 'En programación',
+  EN_PROGRAMACION: 'En revisión',
   PROGRAMADO: 'Programado',
   REPROGRAMADO: 'Reprogramado',
-  REPARADO: 'Reparado',
+  REPARADO: 'Requerimiento realizado',
+  STANDBY: 'Stand By',
+  CANCELADO: 'Cancelado',
   FINALIZADO: 'Finalizado',
   ARCHIVADO: 'Archivado',
 };
 
 export const STATUS_OPTIONS: TicketStatus[] = [
-  'REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'FINALIZADO',
+  'REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY', 'CANCELADO', 'FINALIZADO',
 ];
 
 export function getNestedFieldValue(obj: Record<string, unknown>, path: string) {

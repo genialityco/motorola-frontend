@@ -98,9 +98,9 @@ export function TicketsTab({
             </Badge>
           </Tabs.Tab>
           <Tabs.Tab value="archivados">
-            Archivados
+            Archivados y cancelados
             <Badge size="xs" ml={6} color="gray" variant="light">
-              {tickets.filter((t) => t.status === 'ARCHIVADO').length}
+              {tickets.filter((t) => ['ARCHIVADO', 'CANCELADO'].includes(t.status)).length}
             </Badge>
           </Tabs.Tab>
           <Tabs.Tab value="finalizados">

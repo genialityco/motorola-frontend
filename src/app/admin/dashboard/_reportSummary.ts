@@ -30,7 +30,7 @@ function formatDate(value?: number | string): string {
 
 const SUBTAB_LABELS: Record<string, string> = {
   activos: 'Tickets activos',
-  archivados: 'Archivados',
+  archivados: 'Archivados y cancelados',
   finalizados: 'Finalizados',
 };
 
@@ -143,7 +143,7 @@ function renderTicketDetail(
   const statusLabel = STATUS_LABELS[t.status] ?? t.status;
   const statusHex = MANTINE_HEX[STATUS_COLORS[t.status] ?? 'gray'] ?? '#868e96';
 
-  const level = getComplianceLevel(t.timestamps?.createdAt, configSettings, t.timestamps?.finalizedAt);
+  const level = getComplianceLevel(t.timestamps, configSettings);
   const complianceText = t.status === 'ARCHIVADO' ? '—' : COMPLIANCE_LABELS[level];
 
   const fieldsHtml = fields
@@ -191,7 +191,7 @@ function buildReportHtml({ tickets, configFields, configSettings, hostsMap, filt
   for (const t of tickets) {
     statusCounts.set(t.status, (statusCounts.get(t.status) ?? 0) + 1);
     if (t.status !== 'FINALIZADO' && t.status !== 'ARCHIVADO') {
-      const level = getComplianceLevel(t.timestamps?.createdAt, configSettings, t.timestamps?.finalizedAt);
+      const level = getComplianceLevel(t.timestamps, configSettings);
       complianceCounts.set(level, (complianceCounts.get(level) ?? 0) + 1);
     }
   }

@@ -13,6 +13,8 @@ export type TicketStatus =
   | 'PROGRAMADO'
   | 'REPROGRAMADO'
   | 'REPARADO'
+  | 'STANDBY'
+  | 'CANCELADO'
   | 'FINALIZADO'
   | 'ARCHIVADO';
 
@@ -36,6 +38,10 @@ export interface Ticket {
     updatedAt: number;
     /** Instante en que el ticket pasó a FINALIZADO. Congela el semáforo de cumplimiento. */
     finalizedAt?: number;
+    /** Instante en que el ticket entró en STANDBY. Presente solo mientras está en standby; pausa el semáforo. */
+    standByAt?: number;
+    /** Milisegundos acumulados que el ticket ha pasado en STANDBY en periodos anteriores. Se descuentan del semáforo. */
+    pausedMs?: number;
   };
   extraFields?: Record<string, string | string[]>;
   assignedGestorIds?: string[];

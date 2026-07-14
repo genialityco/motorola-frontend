@@ -31,7 +31,7 @@ export function downloadImportTemplate(configFields: BotField[]) {
     ['INSTRUCCIONES DE IMPORTACIÓN'],
     [''],
     ['Columnas obligatorias:', 'Teléfono Reportante'],
-    ['Estados válidos:', 'REPORTADO, REVISION, EN_REPARACION, REPARADO, ENTREGADO, FINALIZADO, ARCHIVADO'],
+    ['Estados válidos:', 'REPORTADO, EN_PROGRAMACION, PROGRAMADO, REPROGRAMADO, REPARADO, STANDBY, CANCELADO, FINALIZADO, ARCHIVADO'],
     ['Teléfono:', 'Número colombiano de 10 dígitos (ej: 3001234567) o con código de país (ej: 573001234567)'],
     [''],
     ...importableFields

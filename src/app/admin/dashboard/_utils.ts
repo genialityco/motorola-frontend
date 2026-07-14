@@ -36,7 +36,7 @@ export function exportTicketsToExcel(
     configFields.filter((f) => f.excel === true).forEach((f) => {
       row[f.label || f.key] = getFieldValue(t, f.key) || '';
     });
-    const level = getComplianceLevel(t.timestamps?.createdAt, configSettings, t.timestamps?.finalizedAt);
+    const level = getComplianceLevel(t.timestamps, configSettings);
     Object.assign(row, {
       'Alerta de cumplimiento': COMPLIANCE_EXCEL[level],
       'Reportado Por': hostsMap.get(t.reporter?.phone) || t.reporter?.name || '',

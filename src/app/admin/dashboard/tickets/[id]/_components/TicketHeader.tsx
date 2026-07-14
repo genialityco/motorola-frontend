@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function TicketHeader({ ticket, hostName, errorStatus, onClearError, configFields, configSettings, timeline }: Props) {
-  const complianceLevel = getComplianceLevel(ticket.timestamps?.createdAt, configSettings, ticket.timestamps?.finalizedAt);
+  const complianceLevel = getComplianceLevel(ticket.timestamps, configSettings);
 
   return (
     <>
