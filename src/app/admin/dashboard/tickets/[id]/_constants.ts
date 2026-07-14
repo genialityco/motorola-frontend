@@ -2,7 +2,7 @@ import { TicketStatus } from '@/types';
 
 export const STATUS_COLORS: Record<TicketStatus, string> = {
   REPORTADO: 'gray',
-  EN_PROGRAMACION: 'blue',
+  EN_REVISION: 'blue',
   PROGRAMADO: 'cyan',
   REPROGRAMADO: 'orange',
   REPARADO: 'teal',
@@ -14,7 +14,7 @@ export const STATUS_COLORS: Record<TicketStatus, string> = {
 
 export const STATUS_LABELS: Record<TicketStatus, string> = {
   REPORTADO: 'Reportado',
-  EN_PROGRAMACION: 'En revisión',
+  EN_REVISION: 'En revisión',
   PROGRAMADO: 'Programado',
   REPROGRAMADO: 'Reprogramado',
   REPARADO: 'Requerimiento realizado',
@@ -25,7 +25,7 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
 };
 
 export const STATUS_OPTIONS: TicketStatus[] = [
-  'REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY', 'CANCELADO', 'FINALIZADO',
+  'REPORTADO', 'EN_REVISION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY', 'CANCELADO', 'FINALIZADO',
 ];
 
 export function getNestedFieldValue(obj: Record<string, unknown>, path: string) {

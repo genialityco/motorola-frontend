@@ -9,7 +9,7 @@ export interface User {
 
 export type TicketStatus =
   | 'REPORTADO'
-  | 'EN_PROGRAMACION'
+  | 'EN_REVISION'
   | 'PROGRAMADO'
   | 'REPROGRAMADO'
   | 'REPARADO'

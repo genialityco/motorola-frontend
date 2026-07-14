@@ -34,7 +34,7 @@ export const SOURCE_COLORS: Record<string, string> = {
 
 export const STATUS_COLORS: Record<string, string> = {
   REPORTADO: 'red',
-  EN_PROGRAMACION: 'blue',
+  EN_REVISION: 'blue',
   PROGRAMADO: 'cyan',
   REPROGRAMADO: 'orange',
   REPARADO: 'teal',
@@ -46,7 +46,7 @@ export const STATUS_COLORS: Record<string, string> = {
 
 export const STATUS_LABELS: Record<string, string> = {
   REPORTADO: 'Reportado',
-  EN_PROGRAMACION: 'En revisión',
+  EN_REVISION: 'En revisión',
   PROGRAMADO: 'Programado',
   REPROGRAMADO: 'Reprogramado',
   REPARADO: 'Requerimiento realizado',
@@ -56,10 +56,10 @@ export const STATUS_LABELS: Record<string, string> = {
   ARCHIVADO: 'Archivado',
 };
 
-export const ALL_STATUSES = ['REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY'];
+export const ALL_STATUSES = ['REPORTADO', 'EN_REVISION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY'];
 
 export const ACTIVE_TICKET_STATUSES = new Set([
-  'REPORTADO', 'EN_PROGRAMACION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY',
+  'REPORTADO', 'EN_REVISION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY',
 ]);
 
 export const COMPLIANCE_COLORS: Record<ComplianceLevel, string> = {
