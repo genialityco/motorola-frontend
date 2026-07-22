@@ -9,7 +9,10 @@ import { exportTicketsToExcel, getFieldValue } from '../../_utils';
 import { generateTicketsReport } from '../../_reportSummary';
 import { TicketsTable, TicketColumn } from './TicketsTable';
 import { DateFilterModal } from './DateFilterModal';
+import { DeleteTicketModal } from './DeleteTicketModal';
 import { ImportTicketsModal } from '@/components/ImportTicketsModal';
+import { ticketsService } from '@/services/tickets.service';
+import { useAppToast } from '@/components/toast-provider';
 
 interface Props {
   isAdmin: boolean;
@@ -25,8 +28,28 @@ export function TicketsTab({
   isAdmin, tickets, hosts, configFields, visibleFields, systemFields, configSettings,
 }: Props) {
   const filter = useTicketsFilter(tickets, configSettings);
+  const { showToast } = useAppToast();
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
+
+  // Eliminar es irreversible: solo admins y solo sobre archivados/cancelados.
+  const canDelete = isAdmin && filter.ticketSubTab === 'archivados';
+
+  const handleDelete = async (ticket: Ticket) => {
+    try {
+      const { filesDeleted } = await ticketsService.deleteTicket(ticket.id);
+      const archivos = filesDeleted === 1 ? '1 archivo' : `${filesDeleted} archivos`;
+      showToast({
+        type: 'success',
+        title: 'Ticket eliminado',
+        message: `El ticket #${ticket.ticketNumber} y ${archivos} fueron eliminados definitivamente.`,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'No se pudo eliminar el ticket.';
+      showToast({ type: 'error', title: 'Error', message: msg });
+    }
+  };
 
   // Columnas en orden unificado: campos del sistema visibles + campos
   // personalizados visibles, ordenados por su `order` compartido.
@@ -119,6 +142,7 @@ export function TicketsTab({
         configSettings={configSettings}
         hostsMap={hostsMap}
         onOpenDateFilter={() => setDateModalOpen(true)}
+        onDelete={canDelete ? setDeletingTicket : undefined}
       />
 
       <Group justify="space-between" mt="lg" align="center" wrap="wrap" gap="sm">
@@ -150,6 +174,12 @@ export function TicketsTab({
         onToChange={filter.setFilterFechaTo}
         onClear={() => { filter.setFilterFechaFrom(''); filter.setFilterFechaTo(''); filter.setPage(1); }}
         onApply={() => { filter.setPage(1); setDateModalOpen(false); }}
+      />
+
+      <DeleteTicketModal
+        ticket={deletingTicket}
+        onClose={() => setDeletingTicket(null)}
+        onConfirm={handleDelete}
       />
 
       <ImportTicketsModal

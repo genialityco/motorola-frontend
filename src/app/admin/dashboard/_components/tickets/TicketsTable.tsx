@@ -1,7 +1,7 @@
 'use client';
 
-import { Table, Group, Text, Popover, ActionIcon, Checkbox, Stack, Button } from '@mantine/core';
-import { IconFilter } from '@tabler/icons-react';
+import { Table, Group, Text, Popover, ActionIcon, Checkbox, Stack, Button, Tooltip } from '@mantine/core';
+import { IconFilter, IconTrash } from '@tabler/icons-react';
 import Link from 'next/link';
 import { BotField, BotSettings, SystemFieldConfig, Ticket } from '@/types';
 import { getFieldValue } from '../../_utils';
@@ -23,10 +23,12 @@ interface Props {
   configSettings: BotSettings;
   hostsMap: Map<string, string>;
   onOpenDateFilter: () => void;
+  /** Solo admins en la pestaña de archivados/cancelados pueden eliminar. */
+  onDelete?: (ticket: Ticket) => void;
 }
 
 export function TicketsTable({
-  filter, columns, uniqueFieldValues, configSettings, hostsMap, onOpenDateFilter,
+  filter, columns, uniqueFieldValues, configSettings, hostsMap, onOpenDateFilter, onDelete,
 }: Props) {
   const totalCols = columns.length + 1;
   const dateFilterActive = !!filter.filterFechaFrom || !!filter.filterFechaTo;
@@ -100,9 +102,18 @@ export function TicketsTable({
                 )
             )}
             <Table.Td>
-              <Button component={Link} href={`/admin/dashboard/tickets/${ticket.id}`} size="xs" variant="light">
-                Ver Detalle
-              </Button>
+              <Group gap="xs" wrap="nowrap">
+                <Button component={Link} href={`/admin/dashboard/tickets/${ticket.id}`} size="xs" variant="light">
+                  Ver Detalle
+                </Button>
+                {onDelete && (
+                  <Tooltip label="Eliminar ticket" withArrow>
+                    <ActionIcon size="sm" variant="subtle" color="red" onClick={() => onDelete(ticket)}>
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                )}
+              </Group>
             </Table.Td>
           </Table.Tr>
         ))}

@@ -24,8 +24,14 @@ export const STATUS_LABELS: Record<TicketStatus, string> = {
   ARCHIVADO: 'Archivado',
 };
 
-export const STATUS_OPTIONS: TicketStatus[] = [
-  'REPORTADO', 'EN_REVISION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO', 'STANDBY', 'CANCELADO', 'FINALIZADO',
+/**
+ * Estados que se pueden asignar desde el detalle, agrupados en las filas en que
+ * se muestran: arriba el avance normal del ticket, abajo las salidas (pausa,
+ * cancelación y cierre).
+ */
+export const STATUS_OPTION_ROWS: TicketStatus[][] = [
+  ['REPORTADO', 'EN_REVISION', 'PROGRAMADO', 'REPROGRAMADO', 'REPARADO'],
+  ['STANDBY', 'CANCELADO', 'FINALIZADO'],
 ];
 
 export function getNestedFieldValue(obj: Record<string, unknown>, path: string) {

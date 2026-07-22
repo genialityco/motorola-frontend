@@ -30,6 +30,12 @@ export const ticketsService = {
     return apiClient.postForm(`/api/tickets/${ticketId}/photos/${fieldKey}`, formData);
   },
 
+  /** Borrado definitivo: elimina el ticket, su historial y sus archivos en Storage. */
+  deleteTicket: (ticketId: string) =>
+    apiClient.delete<{ success: boolean; ticketNumber: string; filesDeleted: number }>(
+      `/api/tickets/${ticketId}`,
+    ),
+
   updateExtraField: (ticketId: string, fieldKey: string, value: string) =>
     apiClient.patch(`/api/tickets/${ticketId}/extra/${fieldKey}`, { value }),
 
