@@ -45,6 +45,7 @@ export function AdminFlowPanel({ configMessages, setConfigMessages, trackFocus, 
             <Text size="xs" c="dimmed">Variables fijas:</Text>
             <Badge size="xs" variant="outline" color="gray">{'{ticketNumber}'}</Badge>
             <Badge size="xs" variant="outline" color="gray">{'{fieldLabel}'}</Badge>
+            <Text size="xs" c="dimmed">+ variables del ticket de arriba.</Text>
           </Group>
           <Textarea
             value={configMessages.deletePhotoRequest}
