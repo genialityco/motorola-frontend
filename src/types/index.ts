@@ -188,6 +188,8 @@ export interface SessionMessage {
   text?: string;
   photoUrl?: string;
   timestamp: number;
+  /** Presente solo si WhatsApp rechazó el envío: el host nunca lo recibió. */
+  deliveryError?: string;
 }
 
 export interface ChatSession {
@@ -202,4 +204,6 @@ export interface ChatMessage {
   text?: string;
   photoUrl?: string;
   timestamp: number;
+  /** Presente solo si WhatsApp rechazó el envío: el host nunca lo recibió. */
+  deliveryError?: string;
 }

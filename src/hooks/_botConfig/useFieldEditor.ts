@@ -15,6 +15,10 @@ export function useFieldEditor(configFields: BotField[], setConfigFields: Fields
   const [newFieldType, setNewFieldType] = useState<FieldType>('string');
   const [newFieldSource, setNewFieldSource] = useState<FieldSource>('bot');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
+  // Pasar a MAYÚSCULAS sin tildes ayuda a agrupar valores repetidos (ciudad,
+  // canal), pero destroza el texto libre. Por eso se pregunta en vez de
+  // aplicarse a todo campo de texto.
+  const [newFieldNormalize, setNewFieldNormalize] = useState(false);
   const [newFieldOptions, setNewFieldOptions] = useState<string[]>([]);
   const [newFieldOptionInput, setNewFieldOptionInput] = useState('');
   const [newFieldAllowOther, setNewFieldAllowOther] = useState(false);
@@ -133,7 +137,7 @@ export function useFieldEditor(configFields: BotField[], setConfigFields: Fields
       // Orden temporal alto para que aparezca al final de la lista unificada;
       // se renumera a 0..N-1 al guardar/recargar.
       order: Date.now(),
-      normalize: newFieldType === 'string',
+      normalize: newFieldType === 'string' && newFieldNormalize,
       type: newFieldType,
       source: newFieldSource,
       required: newFieldRequired,
@@ -153,6 +157,7 @@ export function useFieldEditor(configFields: BotField[], setConfigFields: Fields
     setNewFieldType('string');
     setNewFieldSource('bot');
     setNewFieldRequired(false);
+    setNewFieldNormalize(false);
     setNewFieldOptions([]);
     setNewFieldOptionInput('');
     setNewFieldAllowOther(false);
@@ -169,6 +174,7 @@ export function useFieldEditor(configFields: BotField[], setConfigFields: Fields
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
+    newFieldNormalize, setNewFieldNormalize,
     newFieldOptions, setNewFieldOptions,
     newFieldOptionInput, setNewFieldOptionInput,
     newFieldAllowOther, setNewFieldAllowOther,

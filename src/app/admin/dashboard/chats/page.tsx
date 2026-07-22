@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  Box, Button, Group, Image, Loader, Paper,
-  ScrollArea, Stack, Switch, Text, Textarea, Title,
+  Badge, Box, Button, Group, Image, Loader, Paper,
+  ScrollArea, Stack, Switch, Text, Textarea, Title, Tooltip,
 } from "@mantine/core";
 import { useWhatsappSessions } from "@/hooks/useWhatsappSessions";
 
@@ -116,6 +116,13 @@ export default function ChatsPage() {
                           <Text size="sm" c="dark">{msg.text || "[imagen]"}</Text>
                         )}
                         <Text size="xs" c="dimmed" ta="right">{new Date(msg.timestamp).toLocaleTimeString()}</Text>
+                        {msg.deliveryError && (
+                          <Tooltip label={msg.deliveryError} withArrow multiline w={280}>
+                            <Badge color="red" variant="light" size="xs" mt={4}>
+                              No entregado
+                            </Badge>
+                          </Tooltip>
+                        )}
                       </Paper>
                     </Box>
                   </Group>

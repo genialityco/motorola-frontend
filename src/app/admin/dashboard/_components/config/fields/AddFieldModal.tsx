@@ -21,6 +21,7 @@ export function AddFieldModal({ api }: Props) {
     newFieldType, setNewFieldType,
     newFieldSource, setNewFieldSource,
     newFieldRequired, setNewFieldRequired,
+    newFieldNormalize, setNewFieldNormalize,
     newFieldOptions, setNewFieldOptions,
     newFieldOptionInput, setNewFieldOptionInput,
     newFieldAllowOther, setNewFieldAllowOther,
@@ -100,6 +101,15 @@ export function AddFieldModal({ api }: Props) {
           checked={newFieldRequired}
           onChange={(e) => setNewFieldRequired(e.currentTarget.checked)}
         />
+        {newFieldType === 'string' && (
+          <Switch
+            label="Guardar en MAYÚSCULAS y sin tildes"
+            description="Útil para agrupar valores repetidos (ciudad, canal). Déjalo apagado en campos de texto libre."
+            size="sm"
+            checked={newFieldNormalize}
+            onChange={(e) => setNewFieldNormalize(e.currentTarget.checked)}
+          />
+        )}
         <Group justify="flex-end" mt="xs">
           <Button variant="subtle" onClick={() => setAddFieldOpen(false)}>Cancelar</Button>
           <Button onClick={addField} disabled={!canSave}>Agregar</Button>

@@ -2,7 +2,7 @@
 
 import {
   Container, Title, Paper, Group, TextInput, Button, Stack,
-  ScrollArea, Text, Image, Badge, Box, Loader, Alert,
+  ScrollArea, Text, Image, Badge, Box, Loader, Alert, Tooltip,
 } from "@mantine/core";
 import { IconSearch } from "@tabler/icons-react";
 import { useWhatsappHistory } from "@/hooks/useWhatsappHistory";
@@ -74,6 +74,11 @@ export default function ChatsPage() {
                       <Text size="sm" style={{ whiteSpace: "pre-wrap" }}>{msg.text}</Text>
                     )}
                     <Text size="xs" c="dimmed">{new Date(msg.timestamp).toLocaleTimeString()}</Text>
+                    {msg.deliveryError && (
+                      <Tooltip label={msg.deliveryError} withArrow multiline w={280}>
+                        <Badge color="red" variant="light" size="xs">No entregado</Badge>
+                      </Tooltip>
+                    )}
                   </Stack>
                 </Paper>
               </Group>
