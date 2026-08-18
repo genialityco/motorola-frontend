@@ -17,7 +17,13 @@ interface Props {
   onDeletePhoto: (fieldKey: string, idx: number) => void;
   onUploadPhotos: (fieldKey: string, files: File[]) => void;
   onUpdateExtraField: (fieldKey: string, value: string) => Promise<void>;
-  onRequestImprovement: (fieldKey: string, fieldLabel: string) => void;
+  /** Ausente cuando el ticket no tiene reportante por WhatsApp al que escribirle. */
+  onRequestImprovement?: (fieldKey: string, fieldLabel: string) => void;
+  /**
+   * Permite editar aquí también los campos del bot. Se usa en los tickets
+   * creados desde el panel: no hay host a quien pedirle la actualización.
+   */
+  allowInlineEdit?: boolean;
 }
 
 export function TicketFields({
@@ -25,6 +31,7 @@ export function TicketFields({
   expandedFields, toggleField,
   deletingPhoto, uploadingField, updatingFieldKey,
   onDeletePhoto, onUploadPhotos, onUpdateExtraField, onRequestImprovement,
+  allowInlineEdit = false,
 }: Props) {
   const extraFields = ticket.extraFields || {};
   const isTicketClosed = ticket.status === 'ARCHIVADO' || ticket.status === 'FINALIZADO';
@@ -33,7 +40,7 @@ export function TicketFields({
     <Stack gap="md" mb="xl">
       {configFields.map((field) => {
         const isMediaField = field.type === 'photo' || field.type === 'video';
-        const isAdminField = field.source === 'admin' && !isMediaField;
+        const isAdminField = !isMediaField && (field.source === 'admin' || allowInlineEdit);
         const value = getNestedFieldValue(extraFields, field.key) as string | string[] | undefined;
 
         if (isMediaField) {
@@ -75,19 +82,21 @@ export function TicketFields({
               <Text fw={700} size="sm" style={{ whiteSpace: 'nowrap' }}>{field.label}:</Text>
               <Text style={{ wordBreak: 'break-word' }}>{display}</Text>
             </Group>
-            <Tooltip
-              label={isTicketClosed
-                ? 'No se pueden enviar mensajes en tickets Archivados o Finalizados'
-                : 'Solicitar actualización al usuario'}
-              withArrow
-            >
-              <ActionIcon
-                variant="filled" color="orange" size="sm"
-                style={{ flexShrink: 0 }}
-                disabled={isTicketClosed}
-                onClick={() => !isTicketClosed && onRequestImprovement(field.key, field.label)}
-              >✎</ActionIcon>
-            </Tooltip>
+            {onRequestImprovement && (
+              <Tooltip
+                label={isTicketClosed
+                  ? 'No se pueden enviar mensajes en tickets Archivados o Finalizados'
+                  : 'Solicitar actualización al usuario'}
+                withArrow
+              >
+                <ActionIcon
+                  variant="filled" color="orange" size="sm"
+                  style={{ flexShrink: 0 }}
+                  disabled={isTicketClosed}
+                  onClick={() => !isTicketClosed && onRequestImprovement(field.key, field.label)}
+                >✎</ActionIcon>
+              </Tooltip>
+            )}
           </Group>
         );
       })}

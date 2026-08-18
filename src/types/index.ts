@@ -32,7 +32,12 @@ export interface Ticket {
   reporter: {
     phone: string;
     name: string;
+    /** Presente en tickets creados desde el panel: el correo del administrador. */
+    email?: string;
   };
+  /** `admin` para los tickets creados manualmente desde el panel; ausente si vino del bot. */
+  origin?: 'admin';
+  createdBy?: { uid: string; email: string };
   timestamps: {
     createdAt: number;
     updatedAt: number;

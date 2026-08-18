@@ -66,10 +66,13 @@ Each hook owns one domain and is the single source of truth for that data. They 
 | `useSimulator` | `whatsapp_sessions/{phone}` doc + polling | `messages[]`, `handleSend()`, `handleReset()` |
 | `useBotConfig` | `bot_config/messages`, `bot_config/ticket_fields`, `bot_config/settings` | config state + field CRUD methods |
 | `useHosts` | `hosts` collection | `hosts[]`, `saveHostNombre()` |
+| `useColumnPrefs` | `/api/users/me/preferences` (REST, not Firestore) | `columnOverrides`, `setColumnVisible()`, `resetColumns()` |
 
 ### Pages
 
-**`/admin/dashboard`** — Main ticket table with real-time updates and a tab panel for bot configuration (messages templates, field schema, system field visibility, session timeout). All config changes write back to Firestore via `configService`.
+**`/admin/dashboard`** — Main ticket table with real-time updates and a tab panel for bot configuration (messages templates, field schema, session timeout). All config changes write back to Firestore via `configService`.
+
+Under the tickets title sits an action row: **Crear Ticket** (admins only, opens `CreateTicketModal` → `POST /api/tickets`) plus a chevron menu with Importar / Exportar on the left, and **Generar Informe** on the right. Column visibility is **not** part of the field config: each user picks their own columns from the `Columnas` menu next to the sub-tabs, persisted through `useColumnPrefs`. The `visible` flag in `bot_config` is only the default for users who never touched a given column (and still drives the host's ticket table).
 
 **`/admin/dashboard/chats`** — Split-pane chat interface. Left: session list sorted by recency. Right: conversation thread with color-coded source (user/bot/admin). Admin can send messages and toggle bot per session.
 

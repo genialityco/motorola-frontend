@@ -51,11 +51,6 @@ export function useBotConfig() {
     apply(b.key, b.kind, a.order);
   };
 
-  // Cambia la visibilidad de un campo del sistema.
-  const setSystemFieldVisible = (key: string, visible: boolean) => {
-    data.setSystemFields((prev) => prev.map((f) => (f.key === key ? { ...f, visible } : f)));
-  };
-
   // Actualiza un campo personalizado por su índice en configFields.
   const updateConfigField = (index: number, patch: Partial<BotField>) => {
     data.setConfigFields((prev) => prev.map((f, i) => (i === index ? { ...f, ...patch } : f)));
@@ -67,7 +62,6 @@ export function useBotConfig() {
     infoTab, setInfoTab,
     mergedFields,
     moveMergedField,
-    setSystemFieldVisible,
     updateConfigField,
   };
 }

@@ -17,7 +17,16 @@ export interface ImportResult {
   failed: FailedTicketRow[];
 }
 
+export interface CreateTicketPayload {
+  /** Valores por clave de campo (soporta notación con puntos: `novelty.type`). */
+  extraFields: Record<string, string>;
+}
+
 export const ticketsService = {
+  /** Alta manual desde el panel. El reportante es el admin autenticado. */
+  createTicket: (payload: CreateTicketPayload) =>
+    apiClient.post<{ id: string; ticketNumber: string }>('/api/tickets', payload),
+
   transition: (ticketId: string, newStatus: TicketStatus, comments = '', scheduledDate?: string) =>
     apiClient.post(`/api/tickets/${ticketId}/transition`, { newStatus, comments, ...(scheduledDate ? { scheduledDate } : {}) }),
 

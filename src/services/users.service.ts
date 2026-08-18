@@ -28,6 +28,15 @@ export interface UpdateGestorDto {
   active?: boolean;
 }
 
+/**
+ * Preferencias de interfaz del usuario autenticado. `ticketColumns` solo guarda
+ * las columnas que el usuario cambió respecto al valor por defecto de la
+ * configuración de campos.
+ */
+export interface UserPreferences {
+  ticketColumns: Record<string, boolean>;
+}
+
 export const usersService = {
   createGestor: (dto: CreateGestorDto) =>
     apiClient.post<GestorUser>('/api/users', dto),
@@ -46,6 +55,12 @@ export const usersService = {
 
   recomputeAssignments: () =>
     apiClient.post<{ updated: number }>('/api/users/recompute-assignments'),
+
+  getMyPreferences: () =>
+    apiClient.get<UserPreferences>('/api/users/me/preferences'),
+
+  updateMyPreferences: (prefs: Partial<UserPreferences>) =>
+    apiClient.patch<UserPreferences>('/api/users/me/preferences', prefs),
 
   promoteAdmin: (setupKey: string) =>
     apiClient.post<{ success: boolean; message: string }>('/api/users/promote-admin', { setupKey }),

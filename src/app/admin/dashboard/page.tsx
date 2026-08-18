@@ -24,6 +24,8 @@ export default function DashboardPage() {
   const { configFields, systemFields, configSettings } = botConfigApi;
   const [activeTab, setActiveTab] = useState<string | null>('tickets');
 
+  // Columnas por defecto para las tablas auxiliares (los tickets del host).
+  // En el gestor de tickets la visibilidad la decide cada usuario.
   const visibleFields = useMemo(
     () => configFields.filter((f) => f.visible !== false),
     [configFields],
@@ -68,7 +70,6 @@ export default function DashboardPage() {
             tickets={tickets}
             hosts={hostsApi.hosts}
             configFields={configFields}
-            visibleFields={visibleFields}
             systemFields={systemFields}
             configSettings={configSettings}
           />

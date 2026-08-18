@@ -58,6 +58,11 @@ export function TicketHeader({ ticket, hostName, errorStatus, onClearError, conf
         <Group>
           <Text fw={700} size="sm" c="dimmed">Reportado Por:</Text>
           <Text c="dark">{hostName || ticket.reporter?.name || ticket.reporter?.phone || '—'}</Text>
+          {ticket.origin === 'admin' && (
+            <Badge size="sm" variant="light" color="blue">
+              Creado desde el panel · notificaciones por correo
+            </Badge>
+          )}
         </Group>
         <Group>
           <Text fw={700} size="sm" c="dimmed">Fecha de creación:</Text>

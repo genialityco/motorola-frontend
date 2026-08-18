@@ -13,7 +13,7 @@ interface Props {
 
 export function FieldsPanel({ api }: Props) {
   const {
-    mergedFields, moveMergedField, setSystemFieldVisible, updateConfigField,
+    mergedFields, moveMergedField, updateConfigField,
     openEditField, deleteField, setAddFieldOpen,
     configSettings, setConfigSettings, savingSettings, saveSettings,
     savingFields, saveFields,
@@ -35,7 +35,8 @@ export function FieldsPanel({ api }: Props) {
           <Title order={4} mb={2}>Campos de la tabla de tickets</Title>
           <Text size="xs" c="dimmed">
             Ordena todas las columnas (sistema y personalizadas) tal como se ven en el dashboard.
-            Los campos del sistema no se pueden editar ni borrar, solo mostrar/ocultar y reordenar.
+            Los campos del sistema no se pueden editar ni borrar, solo reordenar. Qué columnas se
+            muestran lo decide cada usuario desde el menú «Columnas» del gestor de tickets.
           </Text>
         </div>
         <Button size="xs" variant="light" onClick={() => setAddFieldOpen(true)}>+ Agregar campo</Button>
@@ -44,7 +45,6 @@ export function FieldsPanel({ api }: Props) {
       <FieldsTable
         mergedFields={mergedFields}
         moveMergedField={moveMergedField}
-        setSystemFieldVisible={setSystemFieldVisible}
         updateConfigField={updateConfigField}
         openEditField={openEditField}
         deleteField={deleteField}

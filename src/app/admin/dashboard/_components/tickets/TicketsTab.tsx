@@ -1,13 +1,20 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { Group, Title, Button, Tabs, Badge, Select, Text, Pagination } from '@mantine/core';
+import { useCallback, useMemo, useState } from 'react';
+import { Group, Title, Button, Tabs, Badge, Select, Text, Pagination, Menu } from '@mantine/core';
+import {
+  IconChevronDown, IconFileImport, IconFileSpreadsheet, IconPlus, IconReportAnalytics,
+} from '@tabler/icons-react';
 import { Ticket, BotField, BotSettings, SystemFieldConfig, Host } from '@/types';
+import { useAuth } from '@/lib/auth-context';
+import { useColumnPrefs } from '@/hooks/useColumnPrefs';
 import { useTicketsFilter } from '../../_hooks/useTicketsFilter';
 import { ACTIVE_TICKET_STATUSES } from '../../_constants';
 import { exportTicketsToExcel, getFieldValue } from '../../_utils';
 import { generateTicketsReport } from '../../_reportSummary';
 import { TicketsTable, TicketColumn } from './TicketsTable';
+import { ColumnsMenu, ColumnOption } from './ColumnsMenu';
+import { CreateTicketModal } from './CreateTicketModal';
 import { DateFilterModal } from './DateFilterModal';
 import { DeleteTicketModal } from './DeleteTicketModal';
 import { ImportTicketsModal } from '@/components/ImportTicketsModal';
@@ -19,18 +26,20 @@ interface Props {
   tickets: Ticket[];
   hosts: Host[];
   configFields: BotField[];
-  visibleFields: BotField[];
   systemFields: SystemFieldConfig[];
   configSettings: BotSettings;
 }
 
 export function TicketsTab({
-  isAdmin, tickets, hosts, configFields, visibleFields, systemFields, configSettings,
+  isAdmin, tickets, hosts, configFields, systemFields, configSettings,
 }: Props) {
   const filter = useTicketsFilter(tickets, configSettings);
   const { showToast } = useAppToast();
+  const { user } = useAuth();
+  const { columnOverrides, setColumnVisible, resetColumns } = useColumnPrefs(user?.uid);
   const [dateModalOpen, setDateModalOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deletingTicket, setDeletingTicket] = useState<Ticket | null>(null);
 
   // Eliminar es irreversible: solo admins y solo sobre archivados/cancelados.
@@ -51,16 +60,40 @@ export function TicketsTab({
     }
   };
 
-  // Columnas en orden unificado: campos del sistema visibles + campos
-  // personalizados visibles, ordenados por su `order` compartido.
-  const columns = useMemo<TicketColumn[]>(() => {
+  // Todas las columnas posibles (sistema + personalizadas) en el orden unificado
+  // configurado. La visibilidad por defecto viene de la configuración y cada
+  // usuario la ajusta a su gusto desde el menú "Columnas".
+  const allColumns = useMemo<TicketColumn[]>(() => {
     const sysCols = systemFields
-      .filter((sf) => sf.visible !== false && (sf.key !== 'alertaCumplimiento' || filter.ticketSubTab === 'activos'))
       .map((sf) => ({ kind: 'system' as const, key: sf.key, order: sf.order ?? 0, sys: sf }));
-    const customCols = visibleFields
+    const customCols = configFields
       .map((f) => ({ kind: 'custom' as const, key: f.key, order: f.order ?? 0, field: f }));
     return [...sysCols, ...customCols].sort((a, b) => a.order - b.order);
-  }, [systemFields, visibleFields, filter.ticketSubTab]);
+  }, [systemFields, configFields]);
+
+  const isColumnVisible = useCallback((col: TicketColumn) => {
+    const override = columnOverrides[col.key];
+    if (typeof override === 'boolean') return override;
+    return col.kind === 'system' ? col.sys.visible !== false : col.field.visible !== false;
+  }, [columnOverrides]);
+
+  const columnOptions = useMemo<ColumnOption[]>(
+    () => allColumns.map((col) => ({
+      key: col.key,
+      label: col.kind === 'system' ? col.sys.label : (col.field.label || col.field.key),
+      visible: isColumnVisible(col),
+    })),
+    [allColumns, isColumnVisible],
+  );
+
+  // La alerta de cumplimiento solo tiene sentido sobre tickets activos.
+  const columns = useMemo(
+    () => allColumns.filter(
+      (col) => isColumnVisible(col)
+        && (col.key !== 'alertaCumplimiento' || filter.ticketSubTab === 'activos'),
+    ),
+    [allColumns, isColumnVisible, filter.ticketSubTab],
+  );
 
   const hostsMap = useMemo(() => {
     const m = new Map<string, string>();
@@ -76,64 +109,103 @@ export function TicketsTab({
     return map;
   }, [tickets, configFields]);
 
+  const handleExport = () =>
+    exportTicketsToExcel(tickets, configFields, configSettings, hostsMap);
+
+  const handleReport = () => generateTicketsReport({
+    tickets: filter.sorted,
+    configFields,
+    configSettings,
+    hostsMap,
+    filters: {
+      subTab: filter.ticketSubTab,
+      fieldFilters: filter.filterFields,
+      estados: filter.filterEstados,
+      alerta: filter.filterAlerta,
+      fechaFrom: filter.filterFechaFrom,
+      fechaTo: filter.filterFechaTo,
+    },
+  });
+
   return (
     <>
-      <Group justify="space-between" mb="md">
-        <Title order={2}>Gestor de Tickets</Title>
-        <Group gap="xs">
+      <Title order={2} mb="sm">Gestor de Tickets</Title>
+
+      <Group justify="space-between" mb="md" wrap="wrap" gap="sm">
+        <Group gap="sm" wrap="wrap">
           {isAdmin && (
-            <Button onClick={() => setImportModalOpen(true)} variant="light" color="blue">
-              Importar Tickets
+            <Button
+              onClick={() => setCreateModalOpen(true)}
+              leftSection={<IconPlus size={16} />}
+              color="blue"
+            >
+              Crear Ticket
             </Button>
           )}
-          <Button onClick={() => exportTicketsToExcel(tickets, configFields, configSettings, hostsMap)} variant="light" color="green">
-            Exportar Tickets
-          </Button>
-          <Button
-            onClick={() => generateTicketsReport({
-              tickets: filter.sorted,
-              configFields,
-              configSettings,
-              hostsMap,
-              filters: {
-                subTab: filter.ticketSubTab,
-                fieldFilters: filter.filterFields,
-                estados: filter.filterEstados,
-                alerta: filter.filterAlerta,
-                fechaFrom: filter.filterFechaFrom,
-                fechaTo: filter.filterFechaTo,
-              },
-            })}
-            variant="light"
-            color="grape"
-          >
-            Generar Informe
-          </Button>
+
+          <Menu shadow="md" width={210} position="bottom-start" withinPortal>
+            <Menu.Target>
+              <Button variant="light" color="gray" px={10} aria-label="Importar o exportar">
+                <IconChevronDown size={16} />
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Label>Acciones</Menu.Label>
+              {isAdmin && (
+                <Menu.Item
+                  leftSection={<IconFileImport size={15} />}
+                  onClick={() => setImportModalOpen(true)}
+                >
+                  Importar Tickets
+                </Menu.Item>
+              )}
+              <Menu.Item leftSection={<IconFileSpreadsheet size={15} />} onClick={handleExport}>
+                Exportar Tickets
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
         </Group>
+
+        <Button
+          onClick={handleReport}
+          leftSection={<IconReportAnalytics size={16} />}
+          variant="light"
+          color="grape"
+        >
+          Generar Informe
+        </Button>
       </Group>
 
-      <Tabs value={filter.ticketSubTab} onChange={(v) => { filter.setTicketSubTab(v); filter.setPage(1); }} mb="lg">
-        <Tabs.List>
-          <Tabs.Tab value="activos">
-            Tickets
-            <Badge size="xs" ml={6} color="blue" variant="light">
-              {tickets.filter((t) => ACTIVE_TICKET_STATUSES.has(t.status)).length}
-            </Badge>
-          </Tabs.Tab>
-          <Tabs.Tab value="archivados">
-            Archivados y cancelados
-            <Badge size="xs" ml={6} color="gray" variant="light">
-              {tickets.filter((t) => ['ARCHIVADO', 'CANCELADO'].includes(t.status)).length}
-            </Badge>
-          </Tabs.Tab>
-          <Tabs.Tab value="finalizados">
-            Finalizados
-            <Badge size="xs" ml={6} color="green" variant="light">
-              {tickets.filter((t) => t.status === 'FINALIZADO').length}
-            </Badge>
-          </Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
+      <Group justify="space-between" align="flex-end" mb="lg" wrap="wrap" gap="sm">
+        <Tabs value={filter.ticketSubTab} onChange={(v) => { filter.setTicketSubTab(v); filter.setPage(1); }}>
+          <Tabs.List>
+            <Tabs.Tab value="activos">
+              Tickets
+              <Badge size="xs" ml={6} color="blue" variant="light">
+                {tickets.filter((t) => ACTIVE_TICKET_STATUSES.has(t.status)).length}
+              </Badge>
+            </Tabs.Tab>
+            <Tabs.Tab value="archivados">
+              Archivados y cancelados
+              <Badge size="xs" ml={6} color="gray" variant="light">
+                {tickets.filter((t) => ['ARCHIVADO', 'CANCELADO'].includes(t.status)).length}
+              </Badge>
+            </Tabs.Tab>
+            <Tabs.Tab value="finalizados">
+              Finalizados
+              <Badge size="xs" ml={6} color="green" variant="light">
+                {tickets.filter((t) => t.status === 'FINALIZADO').length}
+              </Badge>
+            </Tabs.Tab>
+          </Tabs.List>
+        </Tabs>
+
+        <ColumnsMenu
+          options={columnOptions}
+          onToggle={setColumnVisible}
+          onReset={resetColumns}
+        />
+      </Group>
 
       <TicketsTable
         filter={filter}
@@ -185,6 +257,12 @@ export function TicketsTab({
       <ImportTicketsModal
         opened={importModalOpen}
         onClose={() => setImportModalOpen(false)}
+        configFields={configFields}
+      />
+
+      <CreateTicketModal
+        opened={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
         configFields={configFields}
       />
     </>

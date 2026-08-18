@@ -39,6 +39,10 @@ export default function TicketDetailPage() {
 
   if (!ticket) return <Loader color="blue" type="bars" mt="xl" />;
 
+  // Los tickets creados desde el panel no tienen host en WhatsApp: no se le
+  // puede pedir nada al reportante, así que el admin edita los campos aquí.
+  const canMessageReporter = !!ticket.reporter?.phone;
+
   return (
     <Paper p="lg" shadow="sm" radius="md" withBorder>
       <TicketHeader
@@ -62,7 +66,12 @@ export default function TicketDetailPage() {
         onDeletePhoto={deletePhoto}
         onUploadPhotos={uploadPhotos}
         onUpdateExtraField={updateExtraField}
-        onRequestImprovement={(fieldKey, fieldLabel) => setRequestModal({ fieldKey, fieldLabel })}
+        allowInlineEdit={!canMessageReporter}
+        onRequestImprovement={
+          canMessageReporter
+            ? (fieldKey, fieldLabel) => setRequestModal({ fieldKey, fieldLabel })
+            : undefined
+        }
       />
 
       <StatusHistory

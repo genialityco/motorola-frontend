@@ -9,7 +9,6 @@ import { TYPE_LABELS, TYPE_COLORS } from '../../../_constants';
 interface Props {
   mergedFields: MergedField[];
   moveMergedField: (key: string, dir: 'up' | 'down') => void;
-  setSystemFieldVisible: (key: string, visible: boolean) => void;
   updateConfigField: (index: number, patch: Partial<BotField>) => void;
   openEditField: (idx: number) => void;
   deleteField: (idx: number) => void;
@@ -18,7 +17,7 @@ interface Props {
 const DASH = <Text size="xs" c="dimmed" ta="center">—</Text>;
 
 export function FieldsTable({
-  mergedFields, moveMergedField, setSystemFieldVisible, updateConfigField, openEditField, deleteField,
+  mergedFields, moveMergedField, updateConfigField, openEditField, deleteField,
 }: Props) {
   return (
     <Table withTableBorder withColumnBorders mb="lg" style={{ tableLayout: 'fixed' }}>
@@ -29,7 +28,6 @@ export function FieldsTable({
           <Table.Th style={{ width: 130 }}>Origen</Table.Th>
           <Table.Th style={{ width: 85 }}>Requerido</Table.Th>
           <Table.Th style={{ width: 90 }}>Normalizar</Table.Th>
-          <Table.Th style={{ width: 90 }}>Visible</Table.Th>
           <Table.Th style={{ width: 70 }}>Excel</Table.Th>
           <Table.Th style={{ width: 70 }}>Orden</Table.Th>
           <Table.Th style={{ width: 60 }}></Table.Th>
@@ -65,13 +63,6 @@ export function FieldsTable({
                 <Table.Td>{DASH}</Table.Td>
                 <Table.Td>{DASH}</Table.Td>
                 <Table.Td>{DASH}</Table.Td>
-                <Table.Td style={{ textAlign: 'center' }}>
-                  <Switch
-                    size="xs"
-                    checked={sf.visible}
-                    onChange={(e) => setSystemFieldVisible(sf.key, e.currentTarget.checked)}
-                  />
-                </Table.Td>
                 <Table.Td>{DASH}</Table.Td>
                 <Table.Td>{orderControls}</Table.Td>
                 <Table.Td>{DASH}</Table.Td>
@@ -119,10 +110,6 @@ export function FieldsTable({
                   onChange={(e) => updateConfigField(index, { normalize: e.currentTarget.checked })} />
               </Table.Td>
               <Table.Td style={{ textAlign: 'center' }}>
-                <Switch size="xs" checked={field.visible ?? true}
-                  onChange={(e) => updateConfigField(index, { visible: e.currentTarget.checked })} />
-              </Table.Td>
-              <Table.Td style={{ textAlign: 'center' }}>
                 <Switch size="xs" checked={field.excel ?? false}
                   disabled={field.type === 'photo' || field.type === 'video'}
                   onChange={(e) => updateConfigField(index, { excel: e.currentTarget.checked })} />
@@ -145,7 +132,7 @@ export function FieldsTable({
         })}
         {mergedFields.length === 0 && (
           <Table.Tr>
-            <Table.Td colSpan={9} ta="center" c="dimmed" py="md">
+            <Table.Td colSpan={8} ta="center" c="dimmed" py="md">
               No hay campos configurados.
             </Table.Td>
           </Table.Tr>
